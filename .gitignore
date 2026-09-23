@@ -1,5 +1,6 @@
 # MoonBit 构建产物
 target/
+_build/
 *.mbt.o
 *.wasm
 
