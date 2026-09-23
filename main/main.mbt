@@ -25,6 +25,23 @@ fn main {
   println("  事实: " + join(sep.facts))
   println("  感受: " + join(sep.feelings))
   println("  漂移检测: " + r.drift_note)
+
+  // --- Evidence 证据分级示例 ---
+  println("\n[2] Evidence 证据分级与置信度")
+  let ev = @evidence.EvidenceEngine::new()
+  let items = [
+    @evidence.EvidenceItem::new(@evidence.WrittenCommitment, "邮件确认了新项目范围"),
+    @evidence.EvidenceItem::new(@evidence.ResourceAllocation, "给了预算但没给人力"),
+    @evidence.EvidenceItem::new(@evidence.SingleOralPromise, "会上口头说'会考虑晋升'"),
+    @evidence.EvidenceItem::new(@evidence.UserGuess, "我感觉他在故意拖延"),
+  ]
+  let ea = ev.assess(items, ["晋升评估标准", "预算审批人"])
+  println("  置信度: " + ea.confidence.to_string())
+  println("  " + ea.summary)
+  println("  缺失信息: " + join(ea.missing))
+  for item in ea.items {
+    println("    [" + item.source.label() + " w=" + item.source.weight().to_string() + "] " + item.quote)
+  }
 }
 
 fn join(arr : Array[String]) -> String {
