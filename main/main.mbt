@@ -42,6 +42,17 @@ fn main {
   for item in ea.items {
     println("    [" + item.source.label() + " w=" + item.source.weight().to_string() + "] " + item.quote)
   }
+
+  // --- Scenario 场景路由示例 ---
+  println("\n[3] Scenario 场景路由")
+  let sr = @scenario.ScenarioRouter::new()
+  let rt = sr.route(["两个领导要求冲突", "上个月刚说晋升会考虑", "跨部门协作受阻"])
+  println("  主场景: " + rt.primary.label())
+  for s in rt.secondary {
+    println("  次场景: " + s.label())
+  }
+  println("  命中: " + join(rt.matched))
+  println("  提示: " + rt.hint)
 }
 
 fn join(arr : Array[String]) -> String {
