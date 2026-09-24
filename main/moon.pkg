@@ -2,6 +2,7 @@ import {
   "mw1696803-hub/upward_mgmt_core/lib/ogsm",
   "mw1696803-hub/upward_mgmt_core/lib/evidence",
   "mw1696803-hub/upward_mgmt_core/lib/scenario",
+  "mw1696803-hub/upward_mgmt_core/lib/guardrail",
 }
 
 options(

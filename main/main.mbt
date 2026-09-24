@@ -53,6 +53,34 @@ fn main {
   }
   println("  命中: " + join(rt.matched))
   println("  提示: " + rt.hint)
+
+  // --- Guardrail 防偏见护栏示例 ---
+  println("\n[4] Guardrail 防偏见护栏")
+  let gr = @guardrail.GuardrailEngine::new()
+  // make(痛苦转述, 措辞漂亮, 行为矛盾, 文化, 疲惫, 高期待, 仅感觉, 仅转写, 有硬证据)
+  let gs = @guardrail.GuardrailSignals::make(true, true, true, false, false, true, false, false, false)
+  let ga = gr.check(gs)
+  println("  是否安全通过: " + ga.safe.to_string())
+  for g in ga.triggered {
+    println("    ⚠ " + g.label() + "：" + note_of(g))
+  }
+  println("  必查项:")
+  for c in ga.required_check {
+    println("    · " + c)
+  }
+}
+
+fn note_of(g : @guardrail.GuardrailType) -> String {
+  match g {
+    RetellingOverrepresentsPain => "转述可能放大痛苦时刻，回到证据清单"
+    WordingBehaviorContradiction => "措辞漂亮但行为矛盾，以重复行为为准"
+    CultureChangesMeaning => "注意组织文化对语义的影响"
+    OverEmpathyWithNarrator => "单方叙述+情绪浓，保持中立"
+    TranscriptMissesContext => "转写丢失语气与权力动态，降级结论"
+    FeelingIsRiskSignal => "感觉≠证据，补充事实"
+    DepletionDistorts => "疲惫时先休息再判断"
+    HopeDistorts => "急需认可易过度信任承诺，先验证"
+  }
 }
 
 fn join(arr : Array[String]) -> String {
