@@ -95,6 +95,43 @@ fn main {
     }
   }
   println("  " + cr.note)
+
+  // --- Output 12 段报告示例（MVP 端到端最后一段）---
+  println("\n[7] Output 12 段结构化报告")
+  let oe = @output.OutputEngine::new()
+  let oi = @output.ReportInputs::new()
+  oi.set("objective", "把口头承诺转化为可验证条件")
+  oi.set("gap", "承诺出现但时间线/资源/评估标准不清")
+  oi.set("situation", "老板口头承诺机会，未明确支持与标准")
+  oi.set("move", "书面确认评估标准与时间线")
+  oi.set("happening", "新项目责任 + 口头晋升承诺")
+  oi.set("stuck", "无法判断承诺是否真实")
+  oi.set("missing", "晋升评估标准、预算审批人")
+  oi.set("hypothesis_a", "漂亮话不会兑现")
+  oi.set("hypothesis_b", "确实想给机会但缺机制")
+  oi.set("priority", "缺机制")
+  oi.set("user_side", "急需认可、怕错过机会")
+  oi.set("boss_side", "有资源但未明确分配")
+  oi.set("decision_rights", "晋升评估人未指明")
+  oi.set("capacity", "可执行书面确认动作")
+  oi.set("protect", "避免把口头承诺当结果")
+  oi.set("known_facts", "邮件确认范围；给了预算")
+  oi.set("unverified", "口头晋升承诺；感觉被拖延")
+  oi.set("confidence", "高（有书面与资源证据）")
+  oi.set("similar_case", "c-promotion 口头承诺转书面条件")
+  oi.set("transfers", "先书面确认标准再行动")
+  oi.set("may_not_apply", "组织若无晋升机制则需换路径")
+  oi.set("best_next", "发一封确认邮件列评估标准")
+  oi.set("why_move", "把模糊承诺变成可验证条件")
+  oi.set("not_conclude", "暂不认定承诺一定兑现或一定不兑现")
+  oi.set("third_option", "先确认标准，不急着表忠心或对抗")
+  oi.set("suggested_move", "本周内完成书面确认并设定复查时间点")
+  oi.set("script_safe", "麻烦把评估标准和时间线书面发我，我对照准备")
+  oi.set("script_boundary", "如果对方拒绝书面确认，我会把口头内容复述邮件回执")
+  oi.set("script_traceable", "邮件正文写明'按今天 1:1 共识，评估标准为…请确认'")
+  oi.set("observe_next", "观察两周内是否有书面反馈或资源动作")
+  println(oe.render(oi))
+  println("  安全边界检查: " + @output.OutputEngine::safety_boundaries().length().to_string() + " 条已内置")
 }
 
 fn note_of(g : @guardrail.GuardrailType) -> String {
