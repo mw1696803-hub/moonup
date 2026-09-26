@@ -43,7 +43,7 @@ moon run tools/export_cases > cases/cases.json   # 导出案例库落盘示例�
 
 ## 网页演示
 
-> [MoonUp 交互演示页](docs/moonup-demo.html) — 浏览器打开：输入情境 → 点击 7 模块管线查看各步真实输出 → 12 段报告。静态交互版，数据取自 `moon run main` 真实输出（2026-09-26 实测）。
+> [MoonUp 交互演示页（GitHub Pages 在线版）](https://mw1696803-hub.github.io/moonup/moonup-demo.html) — 输入情境 → 点击 7 模块管线查看各步真实输出 → 12 段报告。数据取自 `moon run main` 真实输出（2026-09-26 实测）。源码在 [docs/moonup-demo.html](docs/moonup-demo.html)。
 
 ## MVP 演示（moon run main）
 
