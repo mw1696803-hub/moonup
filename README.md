@@ -90,7 +90,7 @@ moon run tools/export_cases > cases/cases.json   # 导出案例库落盘示例�
 
 ## 网页演示
 
-> [MoonUp 交互演示页（GitHub Pages 在线版）](https://mw1696803-hub.github.io/moonup/moonup-demo.html) — 输入情境 → 点击 7 模块管线查看各步真实输出 → 12 段报告；页面底部「试试引擎」区支持**评委自行输入情境，由 MoonBit 核心库编译的 WASM 在浏览器本地真实运行**（`docs/moonup.wasm`，输入不出浏览器）。数据取自 `moon run main` 真实输出（2026-09-26 实测）。源码在 [docs/moonup-demo.html](docs/moonup-demo.html)，WASM 导出入口在 [lib/wasm_api](lib/wasm_api/)。
+> [MoonUp 交互演示页（GitHub Pages 在线版）](https://mw1696803-hub.github.io/moonup/moonup-demo.html) — 输入情境 → 点击 7 模块管线查看各步真实输出 → 12 段报告；页面底部「试试引擎」区支持**粘贴原话 → 前端确定性规则解析为 OGSM（无 LLM）→ WASM 在浏览器本地真实运行**（`docs/moonup.wasm`，输入不出浏览器），解析结果可手动微调后再次运行。数据取自 `moon run main` 真实输出（2026-09-26 实测）。源码在 [docs/moonup-demo.html](docs/moonup-demo.html)，WASM 导出入口在 [lib/wasm_api](lib/wasm_api/)，输入协议见 [docs/INPUT.md](docs/INPUT.md)。
 
 ## MVP 演示（moon run main）
 

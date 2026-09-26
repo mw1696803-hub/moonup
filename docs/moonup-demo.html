@@ -94,6 +94,11 @@
   .outbox pre{white-space:pre-wrap;word-break:break-word;font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--ink);max-height:560px;overflow:auto}
   .engine-note{font-size:12px;color:var(--ink-faint);margin-top:8px}
   .engine-note b{color:var(--ok)}
+  /* ===== 原话输入（前置解析）===== */
+  .rawbox{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:20px 22px;margin-bottom:14px}
+  .rawbox textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:14px;padding:10px 12px;font-family:inherit;box-sizing:border-box;min-height:96px;resize:vertical;line-height:1.6}
+  .rawbox textarea:focus{outline:none;border-color:var(--accent)}
+  .step{display:inline-block;border:1px solid var(--accent);color:var(--accent);font-size:12px;padding:1px 10px;border-radius:999px;margin-right:8px;vertical-align:1px}
   @media (max-width:700px){
     .form .grid{grid-template-columns:1fr}
     .evrow{flex-direction:column;align-items:stretch}
@@ -176,9 +181,19 @@
 
   <!-- ===== 试试引擎（WASM 真实运行）===== -->
   <div class="sec-title"><span class="n">04</span>试试引擎——输入你的情境，引擎真实运行</div>
-  <div class="engine-note">此区域由 MoonUp 核心库编译的 <b>WASM</b> 在浏览器本地运行（<code>moonup.wasm</code>），输入不离开你的浏览器；改动任意字段，结果即由真实引擎管线产出。</div>
+  <div class="engine-note">此区域由 MoonUp 核心库编译的 <b>WASM</b> 在浏览器本地运行（<code>moonup.wasm</code>），输入不离开你的浏览器。真实场景中用户给的是<b>原话</b>，先用下方「原话输入」做前置解析（确定性规则，无 LLM），再交给引擎运行。</div>
+
+  <div class="rawbox">
+    <div style="margin-bottom:8px"><span class="step">①</span><span style="font-size:13px;color:var(--ink)">原话输入——粘贴原始互动记录，自动解析为 OGSM 结构化字段</span></div>
+    <textarea id="f-raw">老板上周在例会上让我负责新项目，说这是个好机会，但没给我预算和人力。邮件里确认了新项目范围。我觉得很委屈，又要背锅，担心口头承诺到时候不算数，不知道成功怎么评估。接下来我想把承诺变成书面条件清单，先确认评估标准和时间线，和两个领导拉齐优先级。</textarea>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button class="runbtn" id="parse-btn" type="button">解析并运行</button>
+      <span class="engine-note" style="margin-top:0">解析规则：分句 → 特征词分类（目标/差距/情境/下一步 + 事实/感受/缺失）→ 填充下方字段；结果可在②处微调后再次运行。</span>
+    </div>
+  </div>
 
   <div class="form">
+    <div style="margin-bottom:12px"><span class="step">②</span><span style="font-size:13px;color:var(--ink)">结构化字段（①解析结果已自动填充，可在此微调）</span></div>
     <div class="grid">
       <div><label>O 目标（要达成什么）</label><input id="f-objective" value="把口头承诺转化为可验证条件"></div>
       <div><label>G 差距（当前卡在哪）</label><input id="f-gap" value="新责任出现但授权、资源、评估标准都不清"></div>
@@ -328,6 +343,83 @@
         btn.textContent = '重试';
       });
     });
+
+    /* ---- 原话输入：前置确定性解析（无 LLM）---- */
+    var parseBtn = document.getElementById('parse-btn');
+    if (parseBtn) parseBtn.addEventListener('click', function(){
+      var raw = document.getElementById('f-raw').value;
+      var r = parseRaw(raw);
+      applyParse(r);
+      // 复用「运行引擎」点击逻辑
+      if (btn) btn.click();
+    });
+
+    function splitSents(text){
+      return text.replace(/[。！？；;]+/g, '\n').split('\n')
+        .map(function(s){ return s.trim(); })
+        .filter(function(s){ return s.length > 0; });
+    }
+
+    function parseRaw(text){
+      var r = { O:'', G:'', S:'', M:'', facts:[], feelings:[], missing:[], features:[] };
+      var mains = splitSents(text);
+      for (var i = 0; i < mains.length; i++){
+        // 子句级分类：按逗号再拆，转折/感受/缺失各自归类
+        var subs = mains[i].replace(/[，,：:]+/g, '\n').split('\n')
+          .map(function(s){ return s.trim(); })
+          .filter(function(s){ return s.length > 0; });
+        for (var j = 0; j < subs.length; j++){
+          var s = subs[j];
+          var isFuture = /接下来|下一步|之后|然后|准备|打算|计划|想|希望|要|先/.test(s);
+          var isTurn = /但|却|不过|然而|可是/.test(s);
+          if (/委屈|担心|焦虑|难过|心累|害怕|慌|压力|难受|不爽|犹豫|背锅/.test(s)) r.feelings.push(s);
+          if (/不知道|不清楚|没告诉|没说明|不确定|缺失|疑问/.test(s)) r.missing.push(s);
+          if (/已经|邮件|确认|给了|发了|做了|会上|说过|书面|文档|预算|人力|人员|资源|安排|负责|分配/.test(s) && !isFuture && !isTurn) r.facts.push(s);
+          if (!isTurn && /老板|上级|让我|叫我|布置|分配|安排|领导说|领导让|领导承诺|领导给|同事说/.test(s)) r.S = r.S || s;
+          if (isTurn && /没|不|缺|卡|难|模糊|不清/.test(s)) r.G = r.G || s;
+          if (!r.O && /想|希望|目标|打算|要/.test(s) && /把|将|让|使|变成|转为|拿到|争取|确认/.test(s) && !/接下来|下一步/.test(s)) r.O = s;
+          if (!r.M && /接下来|下一步|之后|然后|准备|计划/.test(s)) r.M = s;
+        }
+      }
+      if (/两个领导|多头|两位领导|两个老板/.test(text)) r.features.push('两个领导要求冲突');
+      if (/口头|承诺|画饼|晋升/.test(text)) r.features.push('口头承诺晋升');
+      if (!r.O) r.O = '（解析未识别：原话未含明确目标句，请手动填写）';
+      if (!r.S) r.S = '（解析未识别：原话未含情境事件句，请手动填写）';
+      if (!r.G) r.G = '（解析未识别：原话未含差距/卡点句，请手动填写）';
+      if (!r.M) r.M = '（解析未识别：原话未含下一步句，请手动填写）';
+      return r;
+    }
+
+    function applyParse(r){
+      setVal('f-objective', r.O);
+      setVal('f-gap', r.G);
+      setVal('f-situation', r.S);
+      setVal('f-move', r.M);
+      setVal('f-facts', r.facts.join('；'));
+      setVal('f-feelings', r.feelings.join('；'));
+      setVal('f-missing-ctx', r.missing.join('；'));
+      setVal('f-features', r.features.join('；'));
+      deriveEvidence(r.facts);
+    }
+    function setVal(id, v){ var el = document.getElementById(id); if (el) el.value = v; }
+
+    function deriveEvidence(facts){
+      var rows = [];
+      for (var i = 0; i < facts.length; i++){
+        var f = facts[i], k = 'guess';
+        if (/邮件|书面|文档|签字/.test(f)) k = 'written';
+        else if (/预算|人力|人员|资源|给了|分配/.test(f)) k = 'resource';
+        else if (/会上|口头|说|答应|承诺/.test(f)) k = 'oral';
+        rows.push([k, f]);
+        if (rows.length >= 4) break;
+      }
+      for (var j = 0; j < 4; j++){
+        var ek = document.getElementById('f-ev' + j + '-k');
+        var eq = document.getElementById('f-ev' + j + '-q');
+        if (ek) ek.value = rows[j] ? rows[j][0] : 'guess';
+        if (eq) eq.value = rows[j] ? rows[j][1] : '';
+      }
+    }
   })();
 </script>
 </body>
