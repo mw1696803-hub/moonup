@@ -437,22 +437,22 @@ fn join(arr : Array[String]) -> String {
 // ===== 压力测试案例集 =====
 // 由真实职场场景 + 跨域业务场景迁移构造（用于压测检索/反馈/修正/落盘链路）
 
-/// 构造压力测试案例库（20 条，覆盖模糊/多头/背锅/画饼/竞品/HR/跨部门等）
+/// 构造压力测试案例库（20 条，覆盖模糊/多头/背锅/画饼/信息收集/HR/跨部门等）
 fn pressure_cases() -> Array[CaseCard] {
   let cs : Array[CaseCard] = []
   cs.push(CaseCard::make("p-weekly-rosy", ["weekly-rosy", "rosy-talk"], "direct-boss", "document", "medium", "anonymized-case", "周会画饼：把'辛苦不会白费'转成可验证的书面条件", "我记一下：这周的重点验收标准是什么？", "连续三次无兑现后，重复记录会显得质疑"))
   cs.push(CaseCard::make("p-multi-culture", ["multi-leader", "culture"], "skip-level", "align", "high", "anonymized-case", "多头领导 + 文化差异：先对齐规则再谈优先级", "两边的汇报口径我先确认一遍再执行", "文化冲突已公开化时，中立传话也可能被当成站队"))
   cs.push(CaseCard::make("p-blame-actual", ["blame-risk", "retrospective"], "project-owner", "document", "high", "anonymized-case", "背锅已发生：复盘只谈证据链，不谈态度", "我把当时的决策记录和邮件整理一份给您", "复盘会已定性时，补充证据会被视为翻旧账"))
-  cs.push(CaseCard::make("p-competitor-intel", ["competitor", "intel"], "external", "observe", "medium", "anonymized-case", "竞品信息收集者：每场活动都来，只为收集情报", "先判断对方提问是否指向内部细节，再决定披露边界", "对方同时是潜在客户时，情报收集也可能转为转化线索"))
-  cs.push(CaseCard::make("p-student-buy", ["purchase", "student"], "sales", "qualify", "low", "anonymized-case", "学生低购买力误判：简单剔除会误伤有意向者", "用行为意向（主动提问/深挖细节）补充购买力判断", "预算确实不足时，过早强推会破坏关系"))
-  cs.push(CaseCard::make("p-missing-touch", ["missing-data", "inactive"], "sales", "touch", "medium", "anonymized-case", "身份/渠道缺失且不活跃：需要人工触达补信息", "先触达补齐画像再打分，缺失数据不直接打低分", "多次触达无回应时，继续投入是沉没成本"))
+  cs.push(CaseCard::make("p-competitor-intel", ["competitor", "intel"], "external", "observe", "medium", "anonymized-case", "信息收集型接触者：频繁接触但只索取不投入，需识别真实意图", "先判断对方询问是否指向内部细节，再决定披露边界", "对方同时是潜在合作对象时，情报收集也可能转为合作线索"))
+  cs.push(CaseCard::make("p-surface-bias", ["surface-profile", "bias"], "sales", "qualify", "low", "anonymized-case", "表面特征误判：按表面特征简单剔除会误伤真实意向者", "用行为信号（主动提问/深挖细节）补充特征判断", "资源确实不足时，过早强推会破坏关系"))
+  cs.push(CaseCard::make("p-missing-touch", ["missing-data", "inactive"], "sales", "touch", "medium", "anonymized-case", "关键信息缺失且不活跃：需人工触达补齐", "先触达补齐信息再评估，缺失数据不直接打低分", "多次触达无回应时，继续投入是沉没成本"))
   cs.push(CaseCard::make("p-hr-labor", ["hr", "labor-risk"], "hr", "document", "high", "anonymized-case", "劳动风险：先咨询专业意见，不留书面把柄", "我先了解流程，必要时咨询专业意见再回复", "对方已正式启动法律程序时，个人话术不再适用"))
   cs.push(CaseCard::make("p-cross-resource", ["cross-dept", "resource"], "peer", "negotiate", "medium", "anonymized-case", "跨部门资源争夺：用业务影响说话，不空手要资源", "我把这个需求对业务目标的影响量化后，再向对方要排期", "对方部门也在冲刺时，谈判窗口很小"))
   cs.push(CaseCard::make("p-delegated-vague", ["delegation", "vague-request"], "direct-boss", "clarify", "medium", "anonymized-case", "被授权但责任模糊：先锁权责边界再开工", "我确认下：这个权限范围到哪，责任由谁兜底？", "组织已明确授权时，反复确认显得不担责"))
   cs.push(CaseCard::make("p-firefighting", ["firefighting", "extra-work"], "direct-boss", "negotiate", "high", "anonymized-case", "紧急救火加活：先给二选一，不默默接下", "救火任务和原排期冲突，我先明确哪个优先级更高", "火烧眉毛时谈优先级，可能显得不配合"))
-  cs.push(CaseCard::make("p-bayes-update", ["bayes", "behavior-intent"], "sales", "observe", "low", "anonymized-case", "贝叶斯更新：每次行为后更新转化概率，不一次定生死", "把每次互动当作一次概率更新，而不是下结论", "行为样本太少时，概率更新噪声很大"))
-  cs.push(CaseCard::make("p-question-driven", ["question-driven", "intent"], "sales", "qualify", "medium", "anonymized-case", "主动提问驱动：参与度低但主动提问题，意向可能更高", "把主动提问视为强意向信号，补查其他行为", "提问只是随口询问时，会高估意向"))
-  cs.push(CaseCard::make("p-silent-member", ["silent", "inactive"], "community", "touch", "low", "anonymized-case", "长期沉默成员：先区分是观望还是流失", "沉默 + 历史活跃 → 观望；沉默 + 零历史 → 待验证", "沉默成员批量触达会引发退群风险"))
+  cs.push(CaseCard::make("p-bayes-update", ["bayes", "behavior-intent"], "sales", "observe", "low", "anonymized-case", "贝叶斯更新：每次行为后更新判断概率，不一次定生死", "把每次互动当作一次概率更新，而不是下结论", "行为样本太少时，概率更新噪声很大"))
+  cs.push(CaseCard::make("p-question-driven", ["question-driven", "intent"], "sales", "qualify", "medium", "anonymized-case", "主动提问驱动：活跃度低但主动提问，真实意图可能更强", "把主动提问视为强信号，补查其他行为", "提问只是随口询问时，会高估信号强度"))
+  cs.push(CaseCard::make("p-silent-member", ["silent", "inactive"], "community", "touch", "low", "anonymized-case", "长期沉默对象：先区分是观望还是流失", "沉默 + 历史投入 → 观望；沉默 + 零历史 → 待验证", "沉默对象批量触达会引发反感风险"))
   cs.push(CaseCard::make("p-rosy-promise", ["rosy-talk", "promise"], "direct-boss", "document", "high", "anonymized-case", "漂亮承诺无兑现机制：先要书面条件，再谈信任", "您说的这个机会，我书面列一下前提条件可以吗？", "对方一贯言而无信时，书面条件也只是缓冲"))
   cs.push(CaseCard::make("p-resource-approver", ["resource", "approval"], "finance", "ask", "medium", "anonymized-case", "资源审批人未指明：先问清楚谁拍板再要资源", "这个预算的审批人是谁？我先对齐口径", "审批链复杂时，问错人反而拖延"))
   cs.push(CaseCard::make("p-org-mechanism", ["org-design", "mechanism"], "system", "observe", "medium", "anonymized-case", "冲突源于组织设计：先找缺失机制，不归因个人", "我先看看是机制缺位还是个人问题，再决定动作", "机制确实存在时，归因于机制会错过个人改进"))
@@ -599,7 +599,7 @@ test "压力检索：多标签命中 top3 且 superseded 不参与" {
 }
 
 ///|
-test "压力检索：竞品场景命中" {
+test "压力检索：信息收集型接触场景命中" {
   let lib = CaseLibrary::new()
   let _ = lib.import_cards(pressure_cases())
   let r = lib.search(["competitor", "intel"])
@@ -607,11 +607,11 @@ test "压力检索：竞品场景命中" {
 }
 
 ///|
-test "压力检索：学生购买力场景命中" {
+test "压力检索：表面特征误判场景命中" {
   let lib = CaseLibrary::new()
   let _ = lib.import_cards(pressure_cases())
-  let r = lib.search(["purchase", "student"])
-  assert_eq(r.matches[0].card.id, "p-student-buy")
+  let r = lib.search(["surface-profile", "bias"])
+  assert_eq(r.matches[0].card.id, "p-surface-bias")
 }
 
 ///|

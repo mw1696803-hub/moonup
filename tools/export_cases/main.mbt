@@ -8,9 +8,9 @@ fn main {
   let _ = lib.import_cards(@case.CaseLibrary::sample_pressure_cases())
 
   // 模拟团队真实使用后的沉淀状态：
-  // 竞品识别与行为意向规则已验证；缺失触达案例被高频命中；一条旧案例被修正
-  let _ = lib.record_feedback("p-competitor-intel", "positive", "团队验证：竞品识别规则有效，供全员参考")
-  let _ = lib.record_feedback("p-student-buy", "positive", "团队验证：行为意向补充购买力判断，命中 2 例转化")
+  // 信息收集识别与行为信号规则已验证；缺失信息案例被高频命中；一条旧案例被修正
+  let _ = lib.record_feedback("p-competitor-intel", "positive", "团队验证：信息收集型接触识别规则有效，供全员参考")
+  let _ = lib.record_feedback("p-surface-bias", "positive", "团队验证：行为信号补充特征判断，命中 2 例")
   let _ = lib.record_hit("p-missing-touch")
   let _ = lib.record_hit("p-missing-touch")
   let _ = lib.record_hit("p-missing-touch")
