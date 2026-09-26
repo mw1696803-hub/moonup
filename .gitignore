@@ -8,3 +8,8 @@ _build/
 .DS_Store
 Thumbs.db
 pkg.generated.mbti
+
+# 本地工作脚本与中间产物（不入库）
+create_issues.*
+issue_bodies/
+docs/_shots/
