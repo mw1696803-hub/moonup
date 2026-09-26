@@ -130,6 +130,16 @@ fn main {
   }
   println("  沉淀方向: 落盘(宿主写文件) → 命中计数 → 高频案例经 feedback 验证后沉淀为用户机制")
 
+  // --- 机制候选演示（高频 + 已验证）---
+  let _ = gl.record_hit("c-user-demo")
+  let _ = gl.record_hit("c-user-demo")
+  let cands = gl.mechanism_candidates(2)
+  let mut cand_info = ""
+  if cands.length() > 0 {
+    cand_info = " → " + cands[0].id
+  }
+  println("  机制候选(命中≥2 且已验证): " + cands.length().to_string() + " 条" + cand_info)
+
   // --- Output 12 段报告示例（MVP 端到端最后一段）---
   println("\n[7] Output 12 段结构化报告")
   let oe = @output.OutputEngine::new()
