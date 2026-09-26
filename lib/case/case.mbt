@@ -6,19 +6,49 @@
 /// - 检索按场景标签匹配，返回最相似案例 + 迁移原则 + 不匹配点；
 /// - 案例是模式参考，不是权威：使用前需校准用户情境差异。
 ///
-/// 内置示例案例基于通用职场模式（标签体系来自素材），生产环境应从脱敏案例库导入。
+/// 生长口子（v1，规则后续逐步完善）：
+/// - add_card / import_cards：运行时追加与批量导入（校验必填字段 + id 去重），案例库可持续生长；
+/// - export_cards：导出全部卡片，为落盘/持久化与版本管理铺路；
+/// - hit_count：命中计数信号，供后续"高频案例沉淀为用户机制"的规则使用（跨会话持久化待落盘加载后启用）。
 
 /// 案例卡片
 pub struct CaseCard {
   id : String
   scenario_tags : Array[String] // scenario: vague-request / promotion / multi-leader ...
   power : String                // direct-boss / skip-level / HR ...
-  move : String                 // ask / clarify / negotiate / align ...
+  action : String               // ask / clarify / negotiate / align ...
   risk : String                 // low / medium / high
   source : String               // generalized-pattern / anonymized-case ...
   principle : String            // 迁移原则
   script_safe : String          // 安全脚本（一条）
   failure_condition : String    // 失效条件
+  hit_count : Int               // 命中计数（沉淀信号，初始 0）
+}
+
+/// 创建案例卡片（跨包使用；hit_count 初始为 0）
+pub fn CaseCard::make(
+  id : String,
+  scenario_tags : Array[String],
+  power : String,
+  action : String,
+  risk : String,
+  source : String,
+  principle : String,
+  script_safe : String,
+  failure_condition : String,
+) -> CaseCard {
+  {
+    id,
+    scenario_tags,
+    power,
+    action,
+    risk,
+    source,
+    principle,
+    script_safe,
+    failure_condition,
+    hit_count: 0,
+  }
 }
 
 /// 检索匹配结果
@@ -42,6 +72,19 @@ pub struct CaseSearchResult {
   note : String
 }
 
+/// 单条追加结果
+pub struct CaseAddResult {
+  added : Bool
+  reason : String // 拒绝原因（成功时为空）
+}
+
+/// 批量导入结果
+pub struct CaseImportResult {
+  added : Int
+  skipped : Int
+  reasons : Array[String]
+}
+
 /// 创建案例库（内置 5 个通用模式案例）
 pub fn CaseLibrary::new() -> CaseLibrary {
   {
@@ -50,65 +93,111 @@ pub fn CaseLibrary::new() -> CaseLibrary {
   }
 }
 
-/// 内置通用模式案例（生产环境应从脱敏案例库导入替换）
+/// 内置通用模式案例（生产环境应通过 import_cards 从脱敏案例库导入替换）
 fn builtin_cases() -> Array[CaseCard] {
   let cases : Array[CaseCard] = []
-  cases.push({
-    id: "c-vague-request",
-    scenario_tags: ["vague-request", "clarify"],
-    power: "direct-boss",
-    move: "clarify",
-    risk: "low",
-    source: "generalized-pattern",
-    principle: "标准未定义前不承诺产出：先澄清验收标准再开工",
-    script_safe: "我先把验收标准和交付物清单列出来，您确认后我再开工",
-    failure_condition: "对方已明确标准时，重复澄清会显得不配合",
-  })
-  cases.push({
-    id: "c-promotion",
-    scenario_tags: ["promotion", "rosy-talk"],
-    power: "direct-boss",
-    move: "document",
-    risk: "medium",
-    source: "generalized-pattern",
-    principle: "口头承诺转为书面条件，按时间线验证兑现",
-    script_safe: "麻烦把评估标准和时间线书面发我，我对照着准备",
-    failure_condition: "组织无晋升机制时，书面确认也难兑现，需考虑其他路径",
-  })
-  cases.push({
-    id: "c-multi-leader",
-    scenario_tags: ["multi-leader", "conflict"],
-    power: "skip-level",
-    move: "align",
-    risk: "high",
-    source: "generalized-pattern",
-    principle: "多领导冲突先对齐再执行：让领导当面确认优先级排序",
-    script_safe: "两位的优先级冲突时，我先拉个三方会确认排序，再动手",
-    failure_condition: "领导之间本就不和时，避免让自己成为传话筒",
-  })
-  cases.push({
-    id: "c-blame-risk",
-    scenario_tags: ["blame-risk", "responsibility"],
-    power: "project-owner",
-    move: "document",
-    risk: "high",
-    source: "generalized-pattern",
-    principle: "接任务先锁定决策记录与责任边界，避免事后背锅",
-    script_safe: "我确认下：这个决定由谁拍板，失败责任如何界定？",
-    failure_condition: "事实已发生的责任，事后无法通过话术转移",
-  })
-  cases.push({
-    id: "c-extra-work",
-    scenario_tags: ["extra-work", "no-schedule"],
-    power: "direct-boss",
-    move: "negotiate",
-    risk: "medium",
-    source: "generalized-pattern",
-    principle: "加活必须重排期：用优先级和资源说话，不默默接下",
-    script_safe: "加这个任务的话，原排期的哪个可以顺延？",
-    failure_condition: "紧急救火场景下谈优先级，可能显得不配合",
-  })
+  cases.push(CaseCard::make(
+    "c-vague-request",
+    ["vague-request", "clarify"],
+    "direct-boss",
+    "clarify",
+    "low",
+    "generalized-pattern",
+    "标准未定义前不承诺产出：先澄清验收标准再开工",
+    "我先把验收标准和交付物清单列出来，您确认后我再开工",
+    "对方已明确标准时，重复澄清会显得不配合",
+  ))
+  cases.push(CaseCard::make(
+    "c-promotion",
+    ["promotion", "rosy-talk"],
+    "direct-boss",
+    "document",
+    "medium",
+    "generalized-pattern",
+    "口头承诺转为书面条件，按时间线验证兑现",
+    "麻烦把评估标准和时间线书面发我，我对照着准备",
+    "组织无晋升机制时，书面确认也难兑现，需考虑其他路径",
+  ))
+  cases.push(CaseCard::make(
+    "c-multi-leader",
+    ["multi-leader", "conflict"],
+    "skip-level",
+    "align",
+    "high",
+    "generalized-pattern",
+    "多领导冲突先对齐再执行：让领导当面确认优先级排序",
+    "两位的优先级冲突时，我先拉个三方会确认排序，再动手",
+    "领导之间本就不和时，避免让自己成为传话筒",
+  ))
+  cases.push(CaseCard::make(
+    "c-blame-risk",
+    ["blame-risk", "responsibility"],
+    "project-owner",
+    "document",
+    "high",
+    "generalized-pattern",
+    "接任务先锁定决策记录与责任边界，避免事后背锅",
+    "我确认下：这个决定由谁拍板，失败责任如何界定？",
+    "事实已发生的责任，事后无法通过话术转移",
+  ))
+  cases.push(CaseCard::make(
+    "c-extra-work",
+    ["extra-work", "no-schedule"],
+    "direct-boss",
+    "negotiate",
+    "medium",
+    "generalized-pattern",
+    "加活必须重排期：用优先级和资源说话，不默默接下",
+    "加这个任务的话，原排期的哪个可以顺延？",
+    "紧急救火场景下谈优先级，可能显得不配合",
+  ))
   cases
+}
+
+/// 追加案例：校验必填字段 + id 去重，成功后案例库生长
+pub fn CaseLibrary::add_card(self : CaseLibrary, card : CaseCard) -> CaseAddResult {
+  if card.id == "" {
+    { added: false, reason: "案例 id 不能为空" }
+  } else if card.principle == "" || card.script_safe == "" || card.failure_condition == "" {
+    { added: false, reason: "字段不完整：principle / script_safe / failure_condition 必填" }
+  } else {
+    let mut dup = false
+    for c in self.cases {
+      if c.id == card.id {
+        dup = true
+      }
+    }
+    if dup {
+      { added: false, reason: "id 已存在：" + card.id }
+    } else {
+      self.cases.push(card)
+      { added: true, reason: "" }
+    }
+  }
+}
+
+/// 批量导入案例：逐条校验，返回成功/跳过统计
+pub fn CaseLibrary::import_cards(self : CaseLibrary, cards : Array[CaseCard]) -> CaseImportResult {
+  let mut added = 0
+  let reasons : Array[String] = []
+  for c in cards {
+    let r = self.add_card(c)
+    if r.added {
+      added = added + 1
+    } else {
+      reasons.push(c.id + ": " + r.reason)
+    }
+  }
+  { added, skipped: cards.length() - added, reasons }
+}
+
+/// 导出全部案例（供落盘/持久化/版本管理）
+pub fn CaseLibrary::export_cards(self : CaseLibrary) -> Array[CaseCard] {
+  let out : Array[CaseCard] = []
+  for c in self.cases {
+    out.push(c)
+  }
+  out
 }
 
 fn arr_contains(arr : Array[String], s : String) -> Bool {
@@ -273,4 +362,117 @@ test "不匹配点提示生成" {
       assert_true(m.mismatch_note.contains("multi-leader"))
     }
   }
+}
+
+///|
+test "add_card 追加成功：案例库生长 +1" {
+  let lib = CaseLibrary::new()
+  let before = lib.cases.length()
+  let card = CaseCard::make(
+    "c-user-hr-discussion",
+    ["hr", "labor-risk"],
+    "hr",
+    "document",
+    "high",
+    "anonymized-case",
+    "劳动风险场景：先咨询专业意见，不留书面把柄",
+    "我先了解一下流程，必要时咨询专业意见再回复",
+    "对方已正式启动法律程序时，个人话术不再适用",
+  )
+  let r = lib.add_card(card)
+  assert_true(r.added)
+  assert_eq(r.reason, "")
+  assert_eq(lib.cases.length(), before + 1)
+}
+
+///|
+test "add_card 重复 id → 拒绝" {
+  let lib = CaseLibrary::new()
+  let card = CaseCard::make(
+    "c-promotion",
+    ["promotion"],
+    "direct-boss",
+    "document",
+    "medium",
+    "generalized-pattern",
+    "x",
+    "y",
+    "z",
+  )
+  let r = lib.add_card(card)
+  assert_false(r.added)
+  assert_true(r.reason.contains("已存在"))
+}
+
+///|
+test "add_card 空 id → 拒绝" {
+  let lib = CaseLibrary::new()
+  let card = CaseCard::make("", ["promotion"], "direct-boss", "document", "medium", "generalized-pattern", "x", "y", "z")
+  let r = lib.add_card(card)
+  assert_false(r.added)
+  assert_true(r.reason.contains("id 不能为空"))
+}
+
+///|
+test "add_card 字段不完整 → 拒绝" {
+  let lib = CaseLibrary::new()
+  let card = CaseCard::make("c-incomplete", ["promotion"], "direct-boss", "document", "medium", "generalized-pattern", "", "y", "")
+  let r = lib.add_card(card)
+  assert_false(r.added)
+  assert_true(r.reason.contains("字段不完整"))
+}
+
+///|
+test "import_cards 批量：2 新增 + 1 重复 → added=2 skipped=1" {
+  let lib = CaseLibrary::new()
+  let cards = [
+    CaseCard::make("c-imp-a", ["promotion"], "direct-boss", "document", "medium", "anonymized-case", "p1", "s1", "f1"),
+    CaseCard::make("c-imp-b", ["conflict"], "skip-level", "align", "high", "anonymized-case", "p2", "s2", "f2"),
+    CaseCard::make("c-promotion", ["promotion"], "direct-boss", "document", "medium", "generalized-pattern", "p3", "s3", "f3"),
+  ]
+  let r = lib.import_cards(cards)
+  assert_eq(r.added, 2)
+  assert_eq(r.skipped, 1)
+  assert_eq(r.reasons.length(), 1)
+}
+
+///|
+test "export_cards 导出全部（含新增）" {
+  let lib = CaseLibrary::new()
+  let _ = lib.add_card(CaseCard::make("c-export-new", ["promotion"], "direct-boss", "document", "medium", "anonymized-case", "p", "s", "f"))
+  let out = lib.export_cards()
+  assert_eq(out.length(), 6)
+  let mut has_new = false
+  for c in out {
+    if c.id == "c-export-new" {
+      has_new = true
+    }
+  }
+  assert_true(has_new)
+}
+
+///|
+test "新增案例可被检索命中" {
+  let lib = CaseLibrary::new()
+  let _ = lib.add_card(CaseCard::make("c-custom-hr", ["hr", "labor-risk"], "hr", "document", "high", "anonymized-case", "先咨询专业意见", "我先了解流程", "法律程序启动后话术失效"))
+  let r = lib.search(["hr"])
+  assert_true(r.total >= 1)
+  assert_eq(r.matches[0].card.id, "c-custom-hr")
+}
+
+///|
+test "内置案例 hit_count 初始为 0（沉淀信号）" {
+  let lib = CaseLibrary::new()
+  for c in lib.cases {
+    assert_eq(c.hit_count, 0)
+  }
+}
+
+///|
+test "make 构造字段正确" {
+  let c = CaseCard::make("c-make", ["a"], "direct-boss", "ask", "low", "generalized-pattern", "principle", "script", "failure")
+  assert_eq(c.id, "c-make")
+  assert_eq(c.hit_count, 0)
+  assert_eq(c.risk, "low")
+  assert_eq(c.scenario_tags.length(), 1)
 }
