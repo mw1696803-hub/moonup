@@ -132,6 +132,71 @@ fn main {
   oi.set("observe_next", "观察两周内是否有书面反馈或资源动作")
   println(oe.render(oi))
   println("  安全边界检查: " + @output.OutputEngine::safety_boundaries().length().to_string() + " 条已内置")
+
+  // --- MVP 端到端：单情境走完全部 7 个模块 ---
+  println("\n[8] MVP 端到端管线（单情境全链路）")
+  // 情境：口头晋升承诺（画饼）+ 多头领导冲突 + 资源缺失
+  // 1. OGS-M 清洗
+  let m_ogsm = @ogsm.OgsmEngine::new()
+  let m_sep = @ogsm.FactSeparation::new()
+  m_sep.facts.push("会上口头承诺晋升，邮件确认了项目范围")
+  m_sep.feelings.push("很委屈")
+  m_sep.missing_context.push("评估标准")
+  let m_clean = m_ogsm.clean(
+    @ogsm.Ogsm::new("把晋升口头承诺转为可验证条件", "承诺无评估标准，且两领导优先级冲突", "老板画饼 + 多头领导 + 只给口头支持", "书面确认评估标准并拉齐领导优先级"),
+    m_sep,
+    true,
+    true,
+  )
+  // 2. Evidence 分级
+  let m_ev = @evidence.EvidenceEngine::new()
+  let m_items = [
+    @evidence.EvidenceItem::new(@evidence.WrittenCommitment, "邮件确认了项目范围"),
+    @evidence.EvidenceItem::new(@evidence.SingleOralPromise, "会上口头说会考虑晋升"),
+    @evidence.EvidenceItem::new(@evidence.UserGuess, "感觉被拖着"),
+  ]
+  let m_ea = m_ev.assess(m_items, ["晋升评估标准", "两领导优先级"])
+  // 3. Scenario 路由
+  let m_sr = @scenario.ScenarioRouter::new()
+  let m_rt = m_sr.route(["口头承诺晋升", "两个领导要求冲突"])
+  // 4. Guardrail 检查
+  let m_gr = @guardrail.GuardrailEngine::new()
+  let m_gs = @guardrail.GuardrailSignals::make(true, true, true, false, false, true, false, false, false)
+  let m_ga = m_gr.check(m_gs)
+  // 5. Hypothesis 空间
+  let m_he = @hypothesis.HypothesisEngine::new()
+  let m_hs = m_he.build(["漂亮话不会兑现", "想给机会但缺机制"], ["晋升评估标准"])
+  // 6. Case 检索
+  let m_cl = @case.CaseLibrary::new()
+  let m_cr = m_cl.search(["promotion", "multi-leader"])
+  // 7. Output 12 段报告
+  let m_oe = @output.OutputEngine::new()
+  let m_oi = @output.ReportInputs::new()
+  m_oi.set("objective", m_clean.ogsm.objective)
+  m_oi.set("gap", m_clean.ogsm.gap)
+  m_oi.set("situation", m_clean.ogsm.situation)
+  m_oi.set("move", m_clean.ogsm.next_action)
+  m_oi.set("missing", "晋升评估标准、两领导优先级")
+  m_oi.set("hypothesis_a", m_hs.hypotheses[0].statement)
+  m_oi.set("hypothesis_b", m_hs.hypotheses[1].statement)
+  m_oi.set("priority", m_hs.most_worth_prioritizing)
+  m_oi.set("known_facts", "邮件确认范围（高权重）")
+  m_oi.set("unverified", "口头晋升承诺；感觉被拖着")
+  m_oi.set("confidence", m_ea.confidence.to_string() + "（有书面证据）")
+  m_oi.set("similar_case", m_cr.matches[0].card.id + "：" + m_cr.matches[0].card.principle)
+  m_oi.set("transfers", "先书面确认标准再行动")
+  m_oi.set("may_not_apply", "组织若无晋升机制需换路径")
+  m_oi.set("best_next", m_clean.ogsm.next_action)
+  m_oi.set("why_move", "把模糊承诺变成可验证条件，拉齐多头领导优先级")
+  m_oi.set("not_conclude", "暂不认定承诺一定兑现或一定不兑现")
+  m_oi.set("third_option", "先确认标准，不急着表忠心或对抗")
+  m_oi.set("suggested_move", "本周书面确认 + 拉三方会定优先级")
+  m_oi.set("script_safe", "麻烦把评估标准和时间线书面发我，我对照准备")
+  m_oi.set("script_traceable", "邮件写明'按今天共识，评估标准为…请确认'")
+  m_oi.set("observe_next", "观察两周内是否有书面反馈或资源动作")
+  println("  管线步骤: 清洗(四元组=" + m_clean.valid.to_string() + ") → 证据(置信度=" + m_ea.confidence.to_string() + ") → 路由(" + m_rt.primary.label() + ") → 护栏(" + m_ga.triggered.length().to_string() + "条触发) → 假设(" + m_hs.hypotheses.length().to_string() + "条) → 案例(" + m_cr.total.to_string() + "条) → 报告(12段)")
+  println("  --- 12 段报告片段 ---")
+  println(m_oe.render(m_oi))
 }
 
 fn note_of(g : @guardrail.GuardrailType) -> String {
