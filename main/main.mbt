@@ -68,6 +68,20 @@ fn main {
   for c in ga.required_check {
     println("    · " + c)
   }
+
+  // --- Hypothesis 假设空间示例 ---
+  println("\n[5] Hypothesis 假设空间")
+  let he = @hypothesis.HypothesisEngine::new()
+  let hs = he.build(
+    ["口头承诺只是漂亮话，不会兑现", "老板确实想给机会但缺乏机制", "他在用拖延试探我的底线"],
+    ["晋升评估标准"],
+  )
+  println("  假设数: " + hs.hypotheses.length().to_string())
+  for h in hs.hypotheses {
+    println("    · " + h.statement + " → 验证: " + h.validation_move)
+  }
+  println("  最值得优先: " + hs.most_worth_prioritizing)
+  println("  下一步: " + hs.next_move)
 }
 
 fn note_of(g : @guardrail.GuardrailType) -> String {
