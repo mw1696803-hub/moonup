@@ -1,0 +1,21 @@
+pkgtype(kind: "foreign_library")
+
+import {
+  "mw1696803-hub/upward_mgmt_core/lib/ogsm",
+  "mw1696803-hub/upward_mgmt_core/lib/evidence",
+  "mw1696803-hub/upward_mgmt_core/lib/scenario",
+  "mw1696803-hub/upward_mgmt_core/lib/guardrail",
+  "mw1696803-hub/upward_mgmt_core/lib/hypothesis",
+  "mw1696803-hub/upward_mgmt_core/lib/case",
+  "mw1696803-hub/upward_mgmt_core/lib/output",
+}
+
+options(
+  link: {
+    "wasm-gc": {
+      "exports": ["moonup_run"],
+      "use-js-builtin-string": true,
+      "imported-string-constants": "_",
+    },
+  },
+)

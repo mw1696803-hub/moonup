@@ -75,6 +75,30 @@
   .foot{margin-top:40px;border-top:1px solid var(--line);padding-top:18px;color:var(--ink-faint);font-size:12.5px;line-height:1.8}
   .foot code{font-family:var(--mono);background:var(--panel);padding:1px 6px;border-radius:4px;color:var(--ink-dim)}
   .tag{display:inline-block;border:1px solid var(--line);color:var(--ink-faint);font-size:11px;padding:1px 8px;border-radius:999px;margin-left:6px;vertical-align:1px}
+  /* ===== 试试引擎（WASM 交互）===== */
+  .form{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:14px}
+  .form .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 18px}
+  .form label{display:block;font-size:12px;color:var(--ink-faint);margin-bottom:4px;letter-spacing:.5px}
+  .form input,.form textarea,.form select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:14px;padding:8px 10px;font-family:inherit;box-sizing:border-box}
+  .form input:focus,.form textarea:focus,.form select:focus{outline:none;border-color:var(--accent)}
+  .form textarea{min-height:44px;resize:vertical}
+  .form .full{grid-column:1 / -1}
+  .evrow{display:flex;gap:8px;align-items:center;margin-top:6px}
+  .evrow select{width:150px;flex:none}
+  .runbtn{margin-top:16px;display:inline-block;background:var(--accent);color:#1a1408;border:none;border-radius:8px;font-size:15px;font-weight:700;padding:11px 26px;cursor:pointer}
+  .runbtn:hover{filter:brightness(1.08)}
+  .runbtn:disabled{opacity:.5;cursor:wait}
+  .outbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:none;margin-top:14px}
+  .outbox.show{display:block}
+  .outbox h4{font-size:14px;color:var(--accent);margin-bottom:10px;font-weight:600}
+  .outbox pre{white-space:pre-wrap;word-break:break-word;font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--ink);max-height:560px;overflow:auto}
+  .engine-note{font-size:12px;color:var(--ink-faint);margin-top:8px}
+  .engine-note b{color:var(--ok)}
+  @media (max-width:700px){
+    .form .grid{grid-template-columns:1fr}
+    .evrow{flex-direction:column;align-items:stretch}
+    .evrow select{width:100%}
+  }
   @media (max-width:860px){
     .pipe{grid-template-columns:repeat(4,1fr)}
     .pstep .pnm{font-size:14px}
@@ -150,6 +174,48 @@
     </div>
   </div>
 
+  <!-- ===== 试试引擎（WASM 真实运行）===== -->
+  <div class="sec-title"><span class="n">04</span>试试引擎——输入你的情境，引擎真实运行</div>
+  <div class="engine-note">此区域由 MoonUp 核心库编译的 <b>WASM</b> 在浏览器本地运行（<code>moonup.wasm</code>），输入不离开你的浏览器；改动任意字段，结果即由真实引擎管线产出。</div>
+
+  <div class="form">
+    <div class="grid">
+      <div><label>O 目标（要达成什么）</label><input id="f-objective" value="把口头承诺转化为可验证条件"></div>
+      <div><label>G 差距（当前卡在哪）</label><input id="f-gap" value="新责任出现但授权、资源、评估标准都不清"></div>
+      <div class="full"><label>S 情境（发生了什么）</label><input id="f-situation" value="老板承诺机会但未明确时间线、资源支持与晋升标准"></div>
+      <div class="full"><label>M 下一步（打算怎么做）</label><input id="f-move" value="将承诺转化为书面条件清单"></div>
+      <div><label>事实（已发生、可验证，用 ；分隔）</label><textarea id="f-facts">老板在会上口头让我负责新项目；没有给我预算和人员</textarea></div>
+      <div><label>感受（主观情绪，用 ；分隔）</label><textarea id="f-feelings">很委屈，又要背锅</textarea></div>
+      <div><label>缺失上下文（未知信息，用 ；分隔）</label><textarea id="f-missing-ctx">不知道成功怎么评估</textarea></div>
+      <div><label>场景特征（用于路由，用 ；分隔）</label><textarea id="f-features">口头承诺晋升；两个领导要求冲突</textarea></div>
+    </div>
+    <div style="margin-top:14px"><label>证据（来源 + 描述，至少 1 条）</label>
+      <div class="evrow">
+        <select id="f-ev0-k"><option value="written" selected>书面承诺(w=3)</option><option value="resource">资源分配(w=3)</option><option value="oral">单次口头承诺(w=1)</option><option value="guess">用户猜测(w=1)</option></select>
+        <input id="f-ev0-q" style="flex:1" value="邮件确认了新项目范围">
+      </div>
+      <div class="evrow">
+        <select id="f-ev1-k"><option value="written">书面承诺(w=3)</option><option value="resource" selected>资源分配(w=3)</option><option value="oral">单次口头承诺(w=1)</option><option value="guess">用户猜测(w=1)</option></select>
+        <input id="f-ev1-q" style="flex:1" value="给了预算但没给人力">
+      </div>
+      <div class="evrow">
+        <select id="f-ev2-k"><option value="written">书面承诺(w=3)</option><option value="resource">资源分配(w=3)</option><option value="oral" selected>单次口头承诺(w=1)</option><option value="guess">用户猜测(w=1)</option></select>
+        <input id="f-ev2-q" style="flex:1" value="会上口头说会考虑晋升">
+      </div>
+      <div class="evrow">
+        <select id="f-ev3-k"><option value="written">书面承诺(w=3)</option><option value="resource">资源分配(w=3)</option><option value="oral">单次口头承诺(w=1)</option><option value="guess" selected>用户猜测(w=1)</option></select>
+        <input id="f-ev3-q" style="flex:1" value="我感觉他在故意拖延">
+      </div>
+    </div>
+    <div style="margin-top:14px"><label>缺失信息（证据不足处，用 ；分隔）</label><input id="f-missing-ev" value="晋升评估标准；预算审批人"></div>
+    <button class="runbtn" id="run-btn" type="button">运行引擎</button>
+  </div>
+
+  <div class="outbox" id="outbox">
+    <h4>引擎输出（moonup_run · 真实管线结果）</h4>
+    <pre id="out-pre"></pre>
+  </div>
+
   <!-- ===== 页脚 ===== -->
   <div class="foot">
     <div>本页为静态交互演示：管线各步与报告内容为 MoonUp 核心库 <code>moon run main</code> 的真实输出（2026-09-26 实测），未做删改。</div>
@@ -199,6 +265,69 @@
         outs[s.id].className = 'pout' + (on ? ' show' : '');
       });
     }
+  })();
+</script>
+
+<!-- ===== 试试引擎：WASM 交互 ===== -->
+<script>
+  (function(){
+    var btn = document.getElementById('run-btn');
+    var outbox = document.getElementById('outbox');
+    var pre = document.getElementById('out-pre');
+    var wasmPromise = null;
+
+    function norm(s){ return s.replace(/[；;]/g, ';;').replace(/\s+/g, ' ').trim(); }
+    function val(id){ var el = document.getElementById(id); return el ? el.value : ''; }
+
+    function loadWasm(){
+      if (wasmPromise) return wasmPromise;
+      wasmPromise = fetch('moonup.wasm')
+        .then(function(r){ if (!r.ok) { throw new Error('moonup.wasm 加载失败 HTTP ' + r.status); } return r.arrayBuffer(); })
+        .then(function(bytes){
+          return WebAssembly.instantiate(bytes, {}, { builtins: ['js-string'], importedStringConstants: '_' });
+        })
+        .then(function(res){ return res.instance; });
+      return wasmPromise;
+    }
+
+    function buildInput(){
+      var evs = [];
+      for (var i = 0; i < 4; i++){
+        var k = val('f-ev' + i + '-k');
+        var q = val('f-ev' + i + '-q');
+        if (q && q.trim()) { evs.push(k + '|' + q.trim()); }
+      }
+      return [
+        val('f-objective') || '（未填写）',
+        val('f-gap') || '（未填写）',
+        val('f-situation') || '（未填写）',
+        val('f-move') || '（未填写）',
+        norm(val('f-facts')),
+        norm(val('f-feelings')),
+        norm(val('f-missing-ctx')),
+        evs.join(';;'),
+        norm(val('f-features')),
+        norm(val('f-missing-ev'))
+      ].join('\n');
+    }
+
+    if (btn) btn.addEventListener('click', function(){
+      btn.disabled = true;
+      btn.textContent = '引擎运行中…';
+      loadWasm().then(function(inst){
+        var out = inst.exports.moonup_run(buildInput());
+        pre.textContent = out;
+        outbox.className = 'outbox show';
+        btn.disabled = false;
+        btn.textContent = '运行引擎';
+      }).catch(function(e){
+        pre.textContent = '引擎加载/运行失败：' + e.message +
+          '\n\n提示：请通过 HTTP 访问本页（GitHub Pages 或本地服务器），file:// 下无法加载 WASM。';
+        outbox.className = 'outbox show';
+        btn.disabled = false;
+        btn.textContent = '重试';
+      });
+    });
   })();
 </script>
 </body>

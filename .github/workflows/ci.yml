@@ -22,3 +22,6 @@ jobs:
 
       - name: Run end-to-end demo
         run: $HOME/.moon/bin/moon run main
+
+      - name: Build WASM artifact (wasm_api export)
+        run: $HOME/.moon/bin/moon build --release --target wasm-gc
