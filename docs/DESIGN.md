@@ -72,10 +72,15 @@ MoonUp 是面向"向上管理"场景的**确定性决策引擎**（MoonBit 核�
 ### case（lib/case）
 
 - 案例卡片：场景标签/权力/动作/风险/来源/迁移原则/脚本/失效条件 + hit_count 沉淀信号
-- 标签匹配检索 → score 降序 top3 + 不匹配点提示
+- 标签匹配检索 → score 降序 top3 + 不匹配点提示；superseded 不参与匹配；同分 verified 优先
 - 内置 5 个通用模式案例（生产环境替换为脱敏案例）
-- **生长口子（v1）**：`add_card` 追加（校验必填字段 + id 去重）、`import_cards` 批量导入（返回 added/skipped/reasons）、`export_cards` 导出全部
-- **沉淀方向（后续逐步完善）**：落盘/持久化加载 → 命中计数 → 高频案例沉淀为"适合用户自身的机制"候选 → 用户反馈（有用/没用）调整卡片权重与失效条件
+- **生长口子（v2）**：
+  - `add_card` 追加（校验必填字段 + id 去重）、`import_cards` 批量导入、`export_cards` 导出
+  - `save_json` / `load_json`：案例库整体 JSON 序列化/反序列化（落盘数据层，宿主负责文件读写；损坏/旧版格式 → Err 不 panic）
+  - `record_feedback`：反馈闭环（positive → verified / negative → superseded）
+  - `supersede`：修正处理（保留卡片 + 修正记录，不覆盖不删除）
+  - status 三态：tentative / verified / superseded
+- **沉淀方向（后续逐步完善）**：落盘加载 → 命中计数跨会话累计 → 高频 + 已验证案例沉淀为"适合用户自身的机制"候选 → 多场景重复反馈（≥2-3 个不同场景）才升级为规则
 
 ### output（lib/output）
 
