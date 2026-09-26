@@ -82,6 +82,19 @@ fn main {
   }
   println("  最值得优先: " + hs.most_worth_prioritizing)
   println("  下一步: " + hs.next_move)
+
+  // --- Case 案例检索示例 ---
+  println("\n[6] Case 案例检索")
+  let cl = @case.CaseLibrary::new()
+  let cr = cl.search(["promotion", "multi-leader"])
+  println("  命中 " + cr.total.to_string() + " 条案例")
+  for m in cr.matches {
+    println("    · " + m.card.id + " [" + m.card.principle + "]")
+    if m.mismatch_note != "" {
+      println("      " + m.mismatch_note)
+    }
+  }
+  println("  " + cr.note)
 }
 
 fn note_of(g : @guardrail.GuardrailType) -> String {
