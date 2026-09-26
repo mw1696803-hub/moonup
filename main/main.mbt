@@ -96,6 +96,24 @@ fn main {
   }
   println("  " + cr.note)
 
+  // --- Case 生长口子演示：追加案例 + 检索命中 ---
+  let gl = @case.CaseLibrary::new()
+  let _ = gl.add_card(@case.CaseCard::make(
+    "c-user-demo",
+    ["hr", "labor-risk"],
+    "hr",
+    "document",
+    "high",
+    "anonymized-case",
+    "劳动风险场景：先咨询专业意见，不留书面把柄",
+    "我先了解一下流程，必要时咨询专业意见再回复",
+    "对方已正式启动法律程序时，个人话术不再适用",
+  ))
+  println("  生长口子: 内置 5 条 + 追加 1 条 = " + gl.export_cards().length().to_string() + " 条")
+  let gr = gl.search(["hr"])
+  println("  新增案例可检索命中: " + gr.matches[0].card.id + "（" + gr.matches[0].card.source + "）")
+  println("  沉淀信号: 卡片自带 hit_count 字段，跨会话持久化与高频沉淀规则留待后续完善")
+
   // --- Output 12 段报告示例（MVP 端到端最后一段）---
   println("\n[7] Output 12 段结构化报告")
   let oe = @output.OutputEngine::new()
