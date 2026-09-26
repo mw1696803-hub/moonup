@@ -41,6 +41,10 @@ moon test                  # 93 个单元测试
 moon run tools/export_cases > cases/cases.json   # 导出案例库落盘示例（纯 JSON）
 ```
 
+## 网页演示
+
+> [MoonUp 交互演示页](docs/moonup-demo.html) — 浏览器打开：输入情境 → 点击 7 模块管线查看各步真实输出 → 12 段报告。静态交互版，数据取自 `moon run main` 真实输出（2026-09-26 实测）。
+
 ## MVP 演示（moon run main）
 
 Demo 覆盖：OGS-M 清洗 → 证据分级与置信度 → 场景路由 → 防偏见检查 → 假设空间 → 案例检索 → 12 段结构化报告，并以一个完整情境（口头晋升承诺 + 多头领导）走完全管线。

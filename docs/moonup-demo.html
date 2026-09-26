@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoonUp 决策引擎 · 交互演示</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316202B'/%3E%3Ctext x='32' y='45' font-size='38' font-family='Georgia,serif' font-weight='700' text-anchor='middle' fill='%23C98F45'%3EM%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#16202b; --panel:#1f2b38; --panel2:#263343; --line:#33445a;
+    --ink:#e8e4da; --ink-dim:#9aa5b1; --ink-faint:#6b7686;
+    --paper:#f6f1e7; --paper-line:#d8cfbb; --paper-ink:#2e2a26; --paper-dim:#6f675a;
+    --accent:#c98f45; --accent-soft:rgba(201,143,69,.14);
+    --ok:#3f8f6e; --warn:#c96f3f; --warn-soft:rgba(201,111,63,.13); --miss:#8a7f9e;
+    --mono:'Cascadia Code','Consolas','Menlo',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:auto}
+  body{background:var(--bg);color:var(--ink);font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;line-height:1.65}
+  .wrap{max-width:1120px;margin:0 auto;padding:40px 24px 64px}
+  /* ===== Hero ===== */
+  .hero{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end;padding-bottom:34px;border-bottom:1px solid var(--line);margin-bottom:36px}
+  .hero h1{font-family:'Noto Serif SC','Songti SC',serif;font-size:34px;font-weight:700;letter-spacing:.5px}
+  .hero .sub{margin-top:8px;color:var(--ink-dim);font-size:15px;max-width:620px}
+  .hero .badges{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+  .badge{border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:13px;color:var(--ink-dim);background:var(--panel);text-align:center}
+  .badge b{display:block;color:var(--accent);font-size:19px;font-weight:700;font-family:var(--mono)}
+  .badge small{color:var(--ink-faint);font-size:11px}
+  /* ===== 章节 ===== */
+  .sec-title{font-family:'Noto Serif SC','Songti SC',serif;font-size:19px;font-weight:700;margin:34px 0 14px;display:flex;align-items:center;gap:10px}
+  .sec-title .n{color:var(--accent);font-family:var(--mono);font-size:13px}
+  /* ===== 情境卡 ===== */
+  .scene{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+  .scene .label{font-size:12px;color:var(--ink-faint);letter-spacing:1px;margin-bottom:10px}
+  .scene .row{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
+  .scene .kv{flex:1;min-width:220px}
+  .scene .kv b{color:var(--accent);font-weight:600;font-size:13px}
+  .scene .kv p{color:var(--ink);font-size:14px;margin-top:2px}
+  .evs{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+  .ev{border-left:3px solid var(--accent);background:var(--panel2);padding:9px 12px;font-size:13px;border-radius:0 6px 6px 0}
+  .ev .w{color:var(--ink-faint);font-family:var(--mono);font-size:11px}
+  .ev .t{color:var(--ink);margin-top:1px;font-size:14px}
+  /* ===== 管线 ===== */
+  .pipe{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:14px 0 4px}
+  .pstep{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:11px 8px;text-align:center;cursor:pointer;transition:border-color .18s,background .18s}
+  .pstep:hover{border-color:var(--accent)}
+  .pstep.active{border-color:var(--accent);background:var(--accent-soft)}
+  .pstep .pn{font-family:var(--mono);font-size:10px;color:var(--ink-faint)}
+  .pstep .pnm{font-size:13.5px;font-weight:600;color:var(--ink);margin-top:2px}
+  .pout{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:none}
+  .pout.show{display:block}
+  .pout h4{font-size:14px;color:var(--accent);margin-bottom:10px;font-weight:600}
+  .pout .kv2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 20px;font-size:14px}
+  .pout .kv2 div b{color:var(--ink);font-weight:600}
+  .pout .kv2 div span{color:var(--ink-dim)}
+  .pout ul{list-style:none;font-size:14px;color:var(--ink-dim);margin-top:8px}
+  .pout li{padding:2px 0}
+  .pout li b{color:var(--ink)}
+  .warn-line{color:var(--warn)}
+  .ok-line{color:var(--ok)}
+  .mono{font-family:var(--mono);font-size:12.5px}
+  /* ===== 报告 ===== */
+  .report{background:var(--paper);color:var(--paper-ink);border-radius:12px;padding:28px 30px;box-shadow:0 14px 34px rgba(0,0,0,.35)}
+  .report .rhead{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--paper-line);padding-bottom:12px;margin-bottom:18px}
+  .report .rhead h3{font-family:'Noto Serif SC','Songti SC',serif;font-size:19px;font-weight:700}
+  .report .rhead small{color:var(--paper-dim)}
+  .rgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:0 26px}
+  .rblock{margin-bottom:16px;break-inside:avoid}
+  .rblock h5{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px;font-family:'Noto Serif SC',serif}
+  .rblock ul{list-style:none;font-size:14px}
+  .rblock li{padding:1px 0}
+  .rblock li b{font-weight:600}
+  .rblock .dim{color:var(--paper-dim)}
+  /* ===== 页脚 ===== */
+  .foot{margin-top:40px;border-top:1px solid var(--line);padding-top:18px;color:var(--ink-faint);font-size:12.5px;line-height:1.8}
+  .foot code{font-family:var(--mono);background:var(--panel);padding:1px 6px;border-radius:4px;color:var(--ink-dim)}
+  .tag{display:inline-block;border:1px solid var(--line);color:var(--ink-faint);font-size:11px;padding:1px 8px;border-radius:999px;margin-left:6px;vertical-align:1px}
+  @media (max-width:860px){
+    .pipe{grid-template-columns:repeat(4,1fr)}
+    .pstep .pnm{font-size:14px}
+    .rgrid{grid-template-columns:1fr}
+    .hero h1{font-size:27px}
+  }
+  @media (max-width:520px){
+    .pipe{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== Hero ===== -->
+  <header class="hero">
+    <div>
+      <h1>MoonUp · 向上管理决策引擎</h1>
+      <p class="sub">输入与上级的互动记录，输出证据分级、置信度与下一步动作。确定性规则驱动，同一输入恒得同一输出。</p>
+    </div>
+    <div class="badges">
+      <div class="badge"><b>7</b><small>模块管线</small></div>
+      <div class="badge"><b>93</b><small>单元测试</small></div>
+      <div class="badge"><b>12</b><small>段报告输出</small></div>
+    </div>
+  </header>
+
+  <!-- ===== 情境输入 ===== -->
+  <div class="sec-title"><span class="n">01</span>情境输入（结构化记录）</div>
+  <div class="scene">
+    <div class="label">用户提交的互动记录 → 已清洗为结构化输入</div>
+    <div class="row">
+      <div class="kv"><b>目标</b><p>把口头承诺转化为可验证条件</p></div>
+      <div class="kv"><b>差距</b><p>承诺出现但时间线 / 资源 / 评估标准不清</p></div>
+      <div class="kv"><b>情境</b><p>老板口头承诺机会，未明确支持与标准</p></div>
+    </div>
+    <div class="evs">
+      <div class="ev"><span class="w">书面承诺 · w=3</span><div class="t">邮件确认了新项目范围</div></div>
+      <div class="ev"><span class="w">资源分配 · w=3</span><div class="t">给了预算但没给人力</div></div>
+      <div class="ev"><span class="w">单次口头承诺 · w=1</span><div class="t">会上口头说"会考虑晋升"</div></div>
+      <div class="ev"><span class="w">用户猜测 · w=1</span><div class="t">我感觉他在故意拖延</div></div>
+    </div>
+  </div>
+
+  <!-- ===== 管线 ===== -->
+  <div class="sec-title"><span class="n">02</span>决策管线 · 7 个模块（点击展开各模块真实输出）</div>
+  <div class="pipe" id="pipe"></div>
+  <div class="pout show" id="po-0"></div>
+  <div class="pout" id="po-1"></div>
+  <div class="pout" id="po-2"></div>
+  <div class="pout" id="po-3"></div>
+  <div class="pout" id="po-4"></div>
+  <div class="pout" id="po-5"></div>
+  <div class="pout" id="po-6"></div>
+
+  <!-- ===== 报告 ===== -->
+  <div class="sec-title"><span class="n">03</span>结构化报告输出（12 段 · 确定性模板）</div>
+  <div class="report">
+    <div class="rhead"><h3>MoonUp 结构化输出报告</h3><small>向上管理 · 情境：口头晋升承诺 + 多头领导</small></div>
+    <div class="rgrid">
+      <div class="rblock"><h5>1. OGS-M 情境清洗</h5><ul><li><b>O</b>：把口头承诺转化为可验证条件</li><li><b>G</b>：承诺出现但时间线/资源/评估标准不清</li><li><b>S</b>：老板口头承诺机会，未明确支持与标准</li><li><b>M</b>：书面确认评估标准与时间线</li></ul></div>
+      <div class="rblock"><h5>2. 认知定位</h5><ul><li><b>发生了什么</b>：新项目责任 + 口头晋升承诺</li><li><b>卡在哪</b>：无法判断承诺是否真实</li><li><b>缺失信息</b>：晋升评估标准、预算审批人</li></ul></div>
+      <div class="rblock"><h5>3. 假设空间</h5><ul><li><b>A</b>：漂亮话不会兑现</li><li><b>B</b>：确实想给机会但缺机制</li><li><b>C</b>：<span class="dim">（待补充）</span></li><li><b>最值得优先</b>：缺机制</li></ul></div>
+      <div class="rblock"><h5>4. 双面与环境解读</h5><ul><li><b>用户侧</b>：急需认可、怕错过机会</li><li><b>老板侧</b>：有资源但未明确分配</li><li><b>决策权</b>：晋升评估人未指明</li><li><b>环境 / 相关方 / 组织机制</b>：<span class="dim">（待补充）</span></li></ul></div>
+      <div class="rblock"><h5>5. 用户状态与韧性校准</h5><ul><li><b>容量</b>：可执行书面确认动作</li><li><b>要保护什么</b>：避免把口头承诺当结果</li><li><b>其余</b>：<span class="dim">（待补充）</span></li></ul></div>
+      <div class="rblock"><h5>6. 证据与置信度</h5><ul><li><b>已知事实</b>：邮件确认范围；给了预算</li><li><b>未验证假设</b>：口头晋升承诺；感觉被拖延</li><li><b>置信度</b>：高（有书面与资源证据）</li></ul></div>
+      <div class="rblock"><h5>7. 相关案例参考</h5><ul><li><b>相似案例</b>：c-promotion 口头承诺转书面条件</li><li><b>可迁移点</b>：先书面确认标准再行动</li><li><b>可能不适用</b>：组织若无晋升机制则需换路径</li></ul></div>
+      <div class="rblock"><h5>8. 专业动作</h5><ul><li><b>最佳下一步</b>：发一封确认邮件列评估标准</li><li><b>为什么</b>：把模糊承诺变成可验证条件</li><li><b>暂不结论</b>：不认定承诺一定兑现或一定不兑现</li></ul></div>
+      <div class="rblock"><h5>9. 第三选项</h5><ul><li>先确认标准，不急着表忠心或对抗</li></ul></div>
+      <div class="rblock"><h5>10. 建议动作</h5><ul><li>本周内完成书面确认并设定复查时间点</li></ul></div>
+      <div class="rblock"><h5>11. 脚本</h5><ul><li><b>安全版</b>：麻烦把评估标准和时间线书面发我，我对照准备</li><li><b>边界版</b>：如果对方拒绝书面确认，我会把口头内容复述邮件回执</li><li><b>可追溯版</b>：邮件正文写明"按今天 1:1 共识，评估标准为…请确认"</li></ul></div>
+      <div class="rblock"><h5>12. 下一步观察</h5><ul><li>观察两周内是否有书面反馈或资源动作</li></ul></div>
+    </div>
+  </div>
+
+  <!-- ===== 页脚 ===== -->
+  <div class="foot">
+    <div>本页为静态交互演示：管线各步与报告内容为 MoonUp 核心库 <code>moon run main</code> 的真实输出（2026-09-26 实测），未做删改。</div>
+    <div style="margin-top:6px">一键复现：<code>git clone https://github.com/mw1696803-hub/moonup</code></div>
+    <div><code>moon install</code> · <code>moon run main</code> · <code>moon test</code></div>
+    <div style="margin-top:6px">完整输出见 <code>docs/DEMO.md</code>；项目 2026 MoonBit 黑客松参赛 · 九月赛<span class="tag">确定性引擎</span><span class="tag">MIT</span></div>
+  </div>
+
+</div>
+
+<!-- ===== 管线数据与交互 ===== -->
+<script>
+  (function(){
+    var steps = [
+      {id:0, n:'01', name:'OGS-M', title:'OGS-M 情境清洗', rows:[['四元组齐全','true'],['漂移检测','警告：老板措辞漂亮但行为矛盾——措辞是弱证据，以重复行为为准']], lis:[['事实','老板在会上口头让我负责新项目；没有给我预算和人员'],['感受','很委屈，又要背锅']], cls:['ok-line','warn-line']},
+      {id:1, n:'02', name:'Evidence', title:'证据分级与置信度', rows:[['置信度','High'],['缺失信息','晋升评估标准；预算审批人']], lis:[['书面承诺 w=3','邮件确认了新项目范围'],['资源分配 w=3','给了预算但没给人力'],['单次口头承诺 w=1','会上口头说"会考虑晋升"'],['用户猜测 w=1','我感觉他在故意拖延']], cls:['ok-line','warn-line','','']},
+      {id:2, n:'03', name:'Scenario', title:'场景路由（16 类）', rows:[['主场景','多头领导冲突'],['次场景','跨职能阻力'],['命中','两个领导要求冲突']], lis:[['提示','多领导冲突：先对齐各方期望再执行，避免夹在中间硬扛（参考 stakeholder-map）']], cls:['','','','']},
+      {id:3, n:'04', name:'Guardrail', title:'防偏见护栏', rows:[['是否安全通过','false'],['必查项','证据支持/反对、改变结论的条件、安全小测试、用户当前状态']], lis:[['转述放大痛苦','转述可能放大痛苦时刻，回到证据清单'],['措辞与行为矛盾','措辞漂亮但行为矛盾，以重复行为为准'],['希望扭曲判断','急需认可易过度信任承诺，先验证'],['过度共情叙述者','单方叙述+情绪浓，保持中立']], cls:['warn-line','warn-line','warn-line','warn-line']},
+      {id:4, n:'05', name:'Hypothesis', title:'假设空间', rows:[['最值得优先','口头承诺只是漂亮话，不会兑现'],['下一步','只需验证一条缺失事实：「晋升评估标准」，不必扩大假设']], lis:[['A','口头承诺只是漂亮话，不会兑现'],['B','老板确实想给机会但缺乏机制'],['C','他在用拖延试探我的底线']], cls:['','','']},
+      {id:5, n:'06', name:'Case', title:'案例检索与生长口子', rows:[['命中案例','2 条'],['落盘 round-trip','JSON 2344 字符 → 恢复 6 条'],['机制候选（命中≥2 且已验证）','1 条 → c-user-demo']], lis:[['c-promotion','口头承诺转为书面条件，按时间线验证兑现'],['c-multi-leader','多领导冲突先对齐再执行'],['损坏 JSON 容错','返回 Err 不崩溃，回退 new()']], cls:['','','','ok-line']},
+      {id:6, n:'07', name:'Output', title:'12 段结构化报告', rows:[['结构','12 段模板（OGS-M/认知/假设/双面解读/状态校准/证据/案例/动作/第三选项/建议/脚本/观察）'],['安全边界','Safety Boundaries 7 条已内置']], lis:[['确定性','键值对输入，缺失键 → 「待补充」，不编造结论']], cls:['','ok-line']}
+    ];
+    var pipe = document.getElementById('pipe');
+    var outs = [];
+    for (var i = 0; i < 7; i++) outs.push(document.getElementById('po-' + i));
+    steps.forEach(function(s){
+      var d = document.createElement('div');
+      d.className = 'pstep' + (s.id === 0 ? ' active' : '');
+      d.innerHTML = '<div class="pn">' + s.n + '</div><div class="pnm">' + s.name + '</div>';
+      d.addEventListener('click', function(){ show(s.id); });
+      pipe.appendChild(d);
+      var o = outs[s.id];
+      var html = '<h4>' + s.title + '</h4><div class="kv2">';
+      s.rows.forEach(function(r){ html += '<div><b>' + r[0] + '</b>：<span>' + r[1] + '</span></div>'; });
+      html += '</div><ul>';
+      s.lis.forEach(function(l, idx){
+        var c = (s.cls && s.cls[idx]) ? ' ' + s.cls[idx] : '';
+        html += '<li class="' + c + '"><b>' + l[0] + '</b>：' + l[1] + '</li>';
+      });
+      html += '</ul>';
+      o.innerHTML = html;
+    });
+    function show(id){
+      steps.forEach(function(s){
+        var on = (s.id === id);
+        pipe.children[s.id].className = 'pstep' + (on ? ' active' : '');
+        outs[s.id].className = 'pout' + (on ? ' show' : '');
+      });
+    }
+  })();
+</script>
+</body>
+</html>
