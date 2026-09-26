@@ -19,14 +19,15 @@
 | `scenario` | 16 类情境场景路由（含组织机制问题）+ top2 命中 + 路由规则提示 |
 | `guardrail` | 8 类防偏见护栏（转述放大/措辞矛盾/文化语义/过度共情/疲惫/希望扭曲…）+ 5 项必查 |
 | `hypothesis` | 2-4 假设空间生成 + 验证动作 + 最值得优先判定 |
-| `case` | 案例卡片标签检索 + 迁移原则 + 不匹配点提示（内置 5 个通用模式案例） |
+| `case` | 案例卡片标签检索 + 迁移原则 + 不匹配点提示；落盘（save_json/load_json）+ 反馈闭环（feedback）+ 修正处理（supersede）+ 命中计数 → 机制候选 |
 | `output` | 12 段结构化报告模板 + Safety Boundaries 7 条安全边界 |
 
 ## 快速开始
 
 ```bash
-moon run main   # 端到端 Demo：7 段分模块演示 + MVP 单情境全链路
-moon test       # 63 个单元测试
+moon run main              # 端到端 Demo：7 段分模块演示 + MVP 单情境全链路
+moon test                  # 93 个单元测试
+moon run tools/export_cases > cases/cases.json   # 导出案例库落盘示例（纯 JSON）
 ```
 
 ## MVP 演示（moon run main）
@@ -45,6 +46,13 @@ Demo 覆盖：OGS-M 清洗 → 证据分级与置信度 → 场景路由 → 防
   → case（案例参考）
   → output（12 段报告）
 ```
+
+## 案例沉淀（case 生长口子）
+
+- **落盘数据层**：`save_json()` / `load_json()` 将案例库整体序列化/反序列化（MoonBit core 无文件 IO，宿主负责真实文件读写；损坏/旧版格式返回 Err 不崩溃）。落盘示例见 [`cases/cases.json`](cases/cases.json)（25 条，含 verified/superseded/hit_count 真实沉淀状态）。
+- **反馈闭环**：`record_feedback(card_id, positive|negative)` —— 正反馈 → `verified`，负反馈 → `superseded`（修正优先，不覆盖不删除）。
+- **命中计数**：`search` 命中自动 `hit_count +1`，跨会话通过落盘累计。
+- **机制候选雏形**：`mechanism_candidates(min_hits)` 返回「命中 ≥ 阈值 且 已验证」的案例，供人工确认固化为适合用户自身的机制；多场景重复反馈（≥2-3 个不同场景）后才升级为规则。
 
 ## 素材来源
 

@@ -301,22 +301,28 @@ fn arr_contains(arr : Array[String], s : String) -> Bool {
 
 /// 检索：按场景标签匹配，返回最多 3 条 + 不匹配提示
 /// 跳过 superseded；同分时 verified 优先（确定性分级落地）
+/// 命中卡片 hit_count +1（沉淀信号，跨会话通过落盘累计）
 pub fn CaseLibrary::search(self : CaseLibrary, query_tags : Array[String]) -> CaseSearchResult {
   let matches : Array[CaseMatch] = []
-  for card in self.cases {
-    if card.status == "superseded" {
-      continue
-    }
-    let hit : Array[String] = []
-    for q in query_tags {
-      if arr_contains(card.scenario_tags, q) {
-        hit.push(q)
+  let mut i = 0
+  while i < self.cases.length() {
+    let card = self.cases[i]
+    if card.status != "superseded" {
+      let hit : Array[String] = []
+      for q in query_tags {
+        if arr_contains(card.scenario_tags, q) {
+          hit.push(q)
+        }
+      }
+      if hit.length() > 0 {
+        // 命中计数 +1（单次经验积累，供机制候选规则使用）
+        let updated = { ..card, hit_count: card.hit_count + 1 }
+        self.cases[i] = updated
+        let mismatch = mismatch_note(query_tags, card)
+        matches.push({ card: updated, matched_tags: hit, score: hit.length(), mismatch_note: mismatch })
       }
     }
-    if hit.length() > 0 {
-      let mismatch = mismatch_note(query_tags, card)
-      matches.push({ card, matched_tags: hit, score: hit.length(), mismatch_note: mismatch })
-    }
+    i = i + 1
   }
 
   // 选择排序：score 降序；同分 verified 优先；再同分保持库序
@@ -351,6 +357,42 @@ pub fn CaseLibrary::search(self : CaseLibrary, query_tags : Array[String]) -> Ca
     total: matches.length(),
     note: "案例是模式参考而非权威：迁移前请校准权力位置、组织文化与关系温度；superseded 案例不参与匹配",
   }
+}
+
+/// 显式记录一次命中（宿主可在检索命中后手动调用；search 已自动累计）
+pub fn CaseLibrary::record_hit(self : CaseLibrary, card_id : String) -> CaseAddResult {
+  let mut idx = -1
+  let mut i = 0
+  while i < self.cases.length() {
+    if self.cases[i].id == card_id {
+      idx = i
+    }
+    i = i + 1
+  }
+  if idx < 0 {
+    { added: false, reason: "未找到案例：" + card_id }
+  } else {
+    let card = self.cases[idx]
+    self.cases[idx] = { ..card, hit_count: card.hit_count + 1, updated_at: "hit+" }
+    { added: true, reason: "" }
+  }
+}
+
+/// 机制候选（雏形规则）：命中次数达到阈值 且 已验证（feedback positive）→ 候选机制
+/// 后续完善：多场景重复反馈（≥2-3 个不同场景）后由人工确认固化
+pub fn CaseLibrary::mechanism_candidates(self : CaseLibrary, min_hits : Int) -> Array[CaseCard] {
+  let out : Array[CaseCard] = []
+  for c in self.cases {
+    if c.status == "verified" && c.hit_count >= min_hits {
+      out.push(c)
+    }
+  }
+  out
+}
+
+/// 压力测试示例案例集（20 条，公开给工具/宿主做落盘演示与压测）
+pub fn CaseLibrary::sample_pressure_cases() -> Array[CaseCard] {
+  pressure_cases()
 }
 
 /// 排序优先级：score 高者优先；同分 verified 优先；否则保持库序
@@ -781,3 +823,77 @@ test "make 构造字段正确" {
   assert_eq(c.status, "tentative")
   assert_eq(c.feedback_verdict, "pending")
 }
+///|
+test "search 命中后 hit_count 自动累计" {
+  let lib = CaseLibrary::new()
+  let _ = lib.search(["promotion"])
+  for c in lib.export_cards() {
+    if c.id == "c-promotion" {
+      assert_eq(c.hit_count, 1)
+    }
+  }
+}
+
+///|
+test "record_hit 显式累计 + 未找到拒绝" {
+  let lib = CaseLibrary::new()
+  let r = lib.record_hit("c-promotion")
+  assert_true(r.added)
+  let r2 = lib.record_hit("c-promotion")
+  assert_true(r2.added)
+  for c in lib.export_cards() {
+    if c.id == "c-promotion" {
+      assert_eq(c.hit_count, 2)
+    }
+  }
+  let bad = lib.record_hit("c-nope")
+  assert_false(bad.added)
+}
+
+///|
+test "mechanism_candidates：高频+已验证 → 候选" {
+  let lib = CaseLibrary::new()
+  let _ = lib.add_card(CaseCard::make("m-hit-v", ["alpha"], "direct-boss", "document", "low", "anonymized-case", "p1", "s1", "f1"))
+  let _ = lib.add_card(CaseCard::make("m-hit-t", ["beta"], "direct-boss", "document", "low", "anonymized-case", "p2", "s2", "f2"))
+  let _ = lib.add_card(CaseCard::make("m-low-v", ["gamma"], "direct-boss", "document", "low", "anonymized-case", "p3", "s3", "f3"))
+  // m-hit-v：3 次命中 + verified
+  let _ = lib.record_hit("m-hit-v")
+  let _ = lib.record_hit("m-hit-v")
+  let _ = lib.record_hit("m-hit-v")
+  let _ = lib.record_feedback("m-hit-v", "positive", "验证通过")
+  // m-hit-t：3 次命中但 tentative
+  let _ = lib.record_hit("m-hit-t")
+  let _ = lib.record_hit("m-hit-t")
+  let _ = lib.record_hit("m-hit-t")
+  // m-low-v：verified 但 0 次命中
+  let _ = lib.record_feedback("m-low-v", "positive", "验证通过")
+  let cands = lib.mechanism_candidates(2)
+  assert_eq(cands.length(), 1)
+  assert_eq(cands[0].id, "m-hit-v")
+}
+
+///|
+test "mechanism_candidates：阈值过滤" {
+  let lib = CaseLibrary::new()
+  let _ = lib.record_feedback("c-promotion", "positive", "验证")
+  let _ = lib.record_hit("c-promotion")
+  // 阈值 2 → 无候选（只 1 次命中）
+  let cands = lib.mechanism_candidates(2)
+  assert_eq(cands.length(), 0)
+  // 阈值 0/1 → 有候选
+  let cands1 = lib.mechanism_candidates(1)
+  assert_eq(cands1.length(), 1)
+}
+
+///|
+test "sample_pressure_cases 公开 20 条且可导入" {
+  let lib = CaseLibrary::new()
+  let r = lib.import_cards(CaseLibrary::sample_pressure_cases())
+  assert_eq(r.added, 20)
+}
+
+// 显式声明 derive 方法提升，消除 implicit_impl_as_method 弃用警告
+pub extend CaseLibrary with ToJson::{to_json}
+pub extend CaseCard with ToJson::{to_json}
+pub extend CaseLibrary with @moonbitlang/core/json.FromJson::{from_json}
+pub extend CaseCard with @moonbitlang/core/json.FromJson::{from_json}
