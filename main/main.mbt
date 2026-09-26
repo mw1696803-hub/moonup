@@ -112,7 +112,23 @@ fn main {
   println("  生长口子: 内置 5 条 + 追加 1 条 = " + gl.export_cards().length().to_string() + " 条")
   let gr = gl.search(["hr"])
   println("  新增案例可检索命中: " + gr.matches[0].card.id + "（" + gr.matches[0].card.source + "）")
-  println("  沉淀信号: 卡片自带 hit_count 字段，跨会话持久化与高频沉淀规则留待后续完善")
+
+  // --- Case 落盘 + 反馈闭环演示 ---
+  let json_str = gl.save_json()
+  let restored = @case.CaseLibrary::load_json(json_str)
+  match restored {
+    Ok(lib2) => println("  落盘 round-trip: JSON " + json_str.length().to_string() + " 字符 → 恢复 " + lib2.export_cards().length().to_string() + " 条")
+    Err(e) => println("  落盘失败: " + e)
+  }
+  let fb = gl.record_feedback("c-user-demo", "positive", "真实调用：按脚本先咨询专业意见，用户接受")
+  let status = gl.export_cards().filter(fn(c) { c.id == "c-user-demo" })[0].status
+  println("  反馈闭环: " + fb.reason + " → 状态 " + status)
+  let bad = @case.CaseLibrary::load_json("{ 不是合法 JSON")
+  match bad {
+    Err(e) => println("  损坏 JSON 容错: " + e)
+    Ok(_) => println("  损坏 JSON 容错: 不应发生")
+  }
+  println("  沉淀方向: 落盘(宿主写文件) → 命中计数 → 高频案例经 feedback 验证后沉淀为用户机制")
 
   // --- Output 12 段报告示例（MVP 端到端最后一段）---
   println("\n[7] Output 12 段结构化报告")
