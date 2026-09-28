@@ -19,13 +19,14 @@
   body{background:var(--bg);color:var(--ink);font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;line-height:1.65}
   .wrap{max-width:1120px;margin:0 auto;padding:40px 24px 64px}
   /* ===== Hero ===== */
-  .hero{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end;padding-bottom:34px;border-bottom:1px solid var(--line);margin-bottom:36px}
-  .hero h1{font-family:'Noto Serif SC','Songti SC',serif;font-size:34px;font-weight:700;letter-spacing:.5px}
-  .hero .sub{margin-top:8px;color:var(--ink-dim);font-size:15px;max-width:620px}
-  .hero .badges{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
-  .badge{border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:13px;color:var(--ink-dim);background:var(--panel);text-align:center}
-  .badge b{display:block;color:var(--accent);font-size:19px;font-weight:700;font-family:var(--mono)}
-  .badge small{color:var(--ink-faint);font-size:11px}
+  .hero{padding-bottom:28px;border-bottom:1px solid var(--line);margin-bottom:28px}
+  .hero .topline{font-family:var(--mono);font-size:12px;color:var(--ink-faint);letter-spacing:2px;margin-bottom:10px}
+  .hero h1{font-family:'Noto Serif SC','Songti SC',serif;font-size:32px;font-weight:700;letter-spacing:.5px}
+  .hero .sub{margin-top:10px;color:var(--ink-dim);font-size:15px;max-width:720px;line-height:1.7}
+  .hero .sub b{color:var(--accent)}
+  .hero .badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .badge{border:1px solid var(--line);border-radius:8px;padding:7px 14px;font-size:13px;color:var(--ink-dim);background:var(--panel)}
+  .badge b{display:inline;color:var(--accent);font-size:16px;font-weight:700;font-family:var(--mono);margin-right:4px}
   /* ===== 章节 ===== */
   .sec-title{font-family:'Noto Serif SC','Songti SC',serif;font-size:19px;font-weight:700;margin:34px 0 14px;display:flex;align-items:center;gap:10px}
   .sec-title .n{color:var(--accent);font-family:var(--mono);font-size:13px}
@@ -71,7 +72,21 @@
   .rblock li{padding:1px 0}
   .rblock li b{font-weight:600}
   .rblock .dim{color:var(--paper-dim)}
-  /* ===== 页脚 ===== */
+  /* ===== 左右分栏：规则 → 输出 ===== */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:14px 0}
+  .split .side{padding:0}
+  .split .side-h{font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:1px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .split .side-l{border-right:1px solid var(--line)}
+  .split pre{margin:0;padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--ink);white-space:pre-wrap;word-break:break-word;min-height:200px;max-height:420px;overflow:auto;background:var(--bg)}
+  .split .out-side pre{color:#c8e6c9}
+  .tabs{display:flex;gap:0;margin:16px 0 0;border:1px solid var(--line);border-radius:10px 10px 0 0;overflow:hidden}
+  .tab{padding:9px 18px;font-size:13px;cursor:pointer;background:var(--panel);color:var(--ink-dim);border-right:1px solid var(--line);font-family:var(--mono)}
+  .tab.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .tab:hover:not(.active){color:var(--ink)}
+  .split-wrap{border:1px solid var(--line);border-top:none;border-radius:0 0 12px 12px;overflow:hidden}
+  .demo-tag{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--ink-faint);border:1px solid var(--line);padding:1px 8px;border-radius:999px;margin-left:8px;vertical-align:2px}
+  .divider{margin:36px 0 20px;padding-top:20px;border-top:2px dashed var(--line);display:flex;align-items:center;gap:10px;color:var(--ink-faint);font-size:13px}
+  .divider b{color:var(--ink-dim);font-family:var(--mono);font-size:12px}
   .foot{margin-top:40px;border-top:1px solid var(--line);padding-top:18px;color:var(--ink-faint);font-size:12.5px;line-height:1.8}
   .foot code{font-family:var(--mono);background:var(--panel);padding:1px 6px;border-radius:4px;color:var(--ink-dim)}
   .tag{display:inline-block;border:1px solid var(--line);color:var(--ink-faint);font-size:11px;padding:1px 8px;border-radius:999px;margin-left:6px;vertical-align:1px}
@@ -120,24 +135,40 @@
 
   <!-- ===== Hero ===== -->
   <header class="hero">
-    <div>
-      <h1>MoonUp Rules · 可嵌入式确定性规则引擎</h1>
-      <p class="sub">本页展示<strong>向上管理示例规则包</strong>的完整管线；引擎核心（@engine: Rule/Fact/RuleEngine）与业务语义解耦，可用于客服分流、风控审核、客户分层等任意规则场景。确定性执行：同一输入恒得同一输出。</p>
-    </div>
+    <div class="topline">MOONBIT NATIVE · DETERMINISTIC RULE ENGINE · WASM</div>
+    <h1>MoonUp Rules</h1>
+    <p class="sub">一个 <b>可嵌入式确定性规则引擎</b>：把业务规则写成数据，引擎负责匹配、优先级冲突消解和动作执行。同一输入恒得同一输出，可测试、可审计、无幻觉。向上管理只是第一个内置示例规则包——换一组规则数组，引擎零改动即可服务客服分流、风控审核、客户分层等任意规则场景。</p>
     <div class="badges">
-      <div class="badge"><b>8</b><small>模块（含通用引擎）</small></div>
-      <div class="badge"><b>112</b><small>单元测试</small></div>
-      <div class="badge"><b>0</b><small>外部依赖</small></div>
+      <div class="badge"><b>112</b>单元测试</div>
+      <div class="badge"><b>0</b>外部依赖</div>
+      <div class="badge"><b>MIT</b>License</div>
+      <div class="badge"><b>WASM</b>浏览器可跑</div>
     </div>
   </header>
 
-  <!-- ===== 通用引擎演示（自动运行）===== -->
-  <div class="sec-title"><span class="n">00</span>通用引擎演示——同一 WASM 核心，两个完全不同业务</div>
-  <div class="outbox show" id="engine-demo-box">
-    <h4>@engine 实时运行（浏览器本地 WASM）</h4>
-    <pre id="engine-demo-pre">正在加载 WASM…</pre>
-    <div class="engine-note">↑ 客服分流与风控审核共用同一个 RuleEngine 核心，只换规则数组。下面 01-03 是向上管理示例规则包。</div>
+  <!-- ===== 核心：规则 → 输出（左右分栏，参考 MOONVIZ）===== -->
+  <div class="sec-title"><span class="n">00</span>它怎么工作——左边写规则，右边看引擎真实输出<span class="demo-tag">浏览器本地 WASM 运行，非截图</span></div>
+  <div class="tabs">
+    <div class="tab active" data-scene="cs">客服分流</div>
+    <div class="tab" data-scene="rk">风控审核</div>
+    <div class="tab" data-scene="up">向上管理（示例包）</div>
   </div>
+  <div class="split-wrap">
+    <div class="split">
+      <div class="side side-l">
+        <div class="side-h">// 你写的规则（MoonBit 代码，可注入）</div>
+        <pre id="rules-pre">加载中…</pre>
+      </div>
+      <div class="side out-side">
+        <div class="side-h">// 引擎输出（@engine.RuleEngine.execute 真实返回）</div>
+        <pre id="engine-out-pre">加载中…</pre>
+      </div>
+    </div>
+  </div>
+  <div class="engine-note">↑ 三个 tab 共用同一个 <code>moonup.wasm</code> 核心；切换时只换规则数组和输入事实，引擎代码零改动。</div>
+
+  <!-- ===== 分隔：示例规则包 ===== -->
+  <div class="divider"><b>▼ 以下为示例规则包：向上管理</b> —— 展示引擎之上可组合的决策组件（证据分级 / 防偏见 / 假设空间 / 案例沉淀）</div>
 
   <!-- ===== 情境输入 ===== -->
   <div class="sec-title"><span class="n">01</span>情境输入（向上管理示例规则包）</div>
@@ -248,6 +279,65 @@
   </div>
 
 </div>
+
+<script>
+  // ===== 三个场景的规则代码（静态展示）=====
+  var SCENES = {
+    cs: {
+      rules:
+'// 客服分流规则集\nlet engine = @engine.RuleEngine::new([\n  Rule::new("cs1", "VIP退款",\n    "intent==退款 && vip==true",\n    "route=VIP人工坐席", 10,\n    "VIP退款转专属坐席"),\n  Rule::new("cs2", "普通退款",\n    "intent==退款",\n    "route=自助退款流程", 5,\n    "普通退款走自助"),\n  Rule::new("cs3", "VIP标签",\n    "vip==true",\n    "tags+=VIP", 1,\n    "所有VIP加标签"),\n])\n\n// 输入事实\nlet fact = Fact::new()\nfact.set("intent", "退款")\nfact.set("vip", "true")\n\n// 执行\nengine.execute(fact)',
+      output: ''
+    },
+    rk: {
+      rules:
+'// 风控审核规则集（同一 engine）\nlet engine = @engine.RuleEngine::new([\n  Rule::new("rk1", "大额新客",\n    "amount>100000 && new_customer==true",\n    "action=人工复核", 10,\n    "大额+新客强制人工"),\n  Rule::new("rk2", "普通大额",\n    "amount>100000",\n    "action=加强验证", 5,\n    "大额加强验证"),\n  Rule::new("rk3", "小额",\n    "amount<1000",\n    "action=自动通过", 1,\n    "小额自动通过"),\n])\n\n// 输入事实\nlet fact = Fact::new()\nfact.set("amount", "150000")\nfact.set("new_customer", "true")\n\n// 执行\nengine.execute(fact)',
+      output: ''
+    },
+    up: {
+      rules:
+'// 向上管理示例规则包（内置）\nlet engine = @engine.RuleEngine::new([\n  Rule::new("ev-write", "书面证据",\n    "evidence_kind==written",\n    "confidence+=3", 10,\n    "书面承诺权重最高"),\n  Rule::new("ev-oral", "口头承诺",\n    "evidence_kind==oral",\n    "confidence+=1", 5,\n    "口头承诺权重低"),\n  Rule::new("guard-bias", "防偏见",\n    "emotion==high && evidence==low",\n    "action=require_verification", 8,\n    "情绪高证据低时强制复核"),\n])\n\n// 完整管线还包含：\n// @ogsm 清洗 → @evidence 分级 → @scenario 路由\n// → @guardrail 护栏 → @hypothesis 假设 → @case 案例 → @output 报告',
+      output: '// 此场景使用完整决策管线（7 模块）\n// 请滚动到下方「04 试试引擎」\n// 输入真实情境后由 WASM 实时运行\n//\n// 以下为静态示例输出摘要：\n//   命中规则: ev-write, guard-bias\n//   置信度: High\n//   主场景: 口头晋升承诺 + 多头领导\n//   护栏触发: 3 条（转述放大/措辞矛盾/希望扭曲）\n//   最佳下一步: 发确认邮件列评估标准\n//\n// ↑ 与客服分流、风控审核共用同一 @engine 核心'
+    }
+  };
+
+  (function(){
+    var rulesPre = document.getElementById('rules-pre');
+    var outPre = document.getElementById('engine-out-pre');
+    var tabs = document.querySelectorAll('.tab');
+
+    function showScene(key){
+      tabs.forEach(function(t){ t.className = 'tab' + (t.dataset.scene === key ? ' active' : ''); });
+      rulesPre.textContent = SCENES[key].rules;
+      outPre.textContent = SCENES[key].output || '引擎加载中…';
+    }
+    tabs.forEach(function(t){
+      t.addEventListener('click', function(){ showScene(t.dataset.scene); });
+    });
+    showScene('cs');
+
+    // 加载 WASM 并获取引擎真实输出
+    fetch('moonup.wasm')
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.arrayBuffer(); })
+      .then(function(bytes){ return WebAssembly.instantiate(bytes, {}, { builtins:['js-string'], importedStringConstants:'_' }); })
+      .then(function(res){ return res.instance.exports; })
+      .then(function(exports){
+        var raw = exports.moonup_demo_engine();
+        // 按 "--- 场景" 切分
+        var parts = raw.split(/--- 场景 [AB]/);
+        // parts[0] = 头部说明, parts[1] = 客服, parts[2] = 风控
+        var csOut = parts[1] ? parts[1].trim() : '(无输出)';
+        var rkOut = parts[2] ? parts[2].trim() : '(无输出)';
+        SCENES.cs.output = csOut;
+        SCENES.rk.output = rkOut;
+        // 刷新当前 tab
+        var active = document.querySelector('.tab.active');
+        if (active) showScene(active.dataset.scene);
+      })
+      .catch(function(e){
+        outPre.textContent = 'WASM 加载失败：' + e.message + '\n（需通过 HTTP 访问，file:// 下无法加载）';
+      });
+  })();
+</script>
 
 <!-- ===== 管线数据与交互 ===== -->
 <script>
