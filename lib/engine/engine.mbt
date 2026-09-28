@@ -185,15 +185,15 @@ fn num_cmp(f : Fact, key : String, expected : String, op : (Int, Int) -> Bool) -
   op(av, bv)
 }
 
-/// 字符串转 Int，返回 (值, 是否成功解析到至少一位数字)
+/// 字符串转 Int（严格：整个字符串必须是可选负号+纯数字，否则失败）
 fn parse_int_safe(s : String) -> (Int, Bool) {
   let mut n = 0
   let mut neg = false
   let mut started = false
-  let mut has_digit = false
   for ch in s {
     if ch == '-' && !started {
       neg = true
+      started = true
       continue
     }
     let d = match ch {
@@ -212,12 +212,14 @@ fn parse_int_safe(s : String) -> (Int, Bool) {
     if d >= 0 {
       n = n * 10 + d
       started = true
-      has_digit = true
-    } else if started {
-      break
+    } else {
+      return (0, false)
     }
   }
-  if neg { (-n, has_digit) } else { (n, has_digit) }
+  if n == 0 && !started {
+    return (0, false)
+  }
+  if neg { (-n, true) } else { (n, true) }
 }
 
 /// 二元切分（取第一个分隔符前后）
@@ -426,4 +428,32 @@ test "数字比较：非数字值不命中" {
   let e = RuleEngine::new([Rule::new("r1", "big", "amount>1000", "action=人工复核", 1, "大额")])
   let r = e.execute(f)
   assert_eq(r.matched.length(), 0)
+}
+
+///|
+test "数字比较：123abc 不命中（严格解析）" {
+  let f = Fact::new()
+  f.set("amount", "123abc")
+  let e = RuleEngine::new([Rule::new("r1", "big", "amount>100", "action=人工复核", 1, "大额")])
+  let r = e.execute(f)
+  assert_eq(r.matched.length(), 0)
+}
+
+///|
+test "数字比较：abc123 不命中（严格解析）" {
+  let f = Fact::new()
+  f.set("amount", "abc123")
+  let e = RuleEngine::new([Rule::new("r1", "big", "amount>0", "action=人工复核", 1, "大额")])
+  let r = e.execute(f)
+  assert_eq(r.matched.length(), 0)
+}
+
+///|
+test "数字比较：负数正常比较" {
+  let f = Fact::new()
+  f.set("temp", "-5")
+  let e = RuleEngine::new([Rule::new("r1", "freeze", "temp<0", "action=结冰", 1, "零下")])
+  let r = e.execute(f)
+  assert_eq(r.matched.length(), 1)
+  assert_eq(r.facts.get("action"), "结冰")
 }
