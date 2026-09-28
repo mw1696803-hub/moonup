@@ -1,4 +1,4 @@
-# MoonUp 可复现演示说明
+﻿# MoonUp 可复现演示说明
 
 本文件提供一键复现步骤与真实运行输出快照（2026-09-26 在 MoonBit 工具链下实测），对应赛事验收标准 03「能够运行」。
 
@@ -8,7 +8,7 @@
 git clone https://github.com/mw1696803-hub/moonup.git
 cd moonup
 moon install        # 拉取依赖（仅 MoonBit core，无第三方依赖）
-moon test           # 93 个单元测试
+moon test           # 101 个单元测试
 moon run main       # 端到端 Demo：7 模块管线 + 12 段报告 + MVP 单情境全链路
 moon run tools/export_cases > cases/cases.json   # 可选：导出案例库落盘示例
 ```
@@ -110,7 +110,7 @@ Total tests: 93, passed: 93, failed: 0.
 
 ## 4. 双面与环境解读
 - 用户侧: 急需认可、怕错过机会
-- 老板侧: 有资源但未明确分配
+- 对方侧: 有资源但未明确分配
 - 环境: （待补充）
 - 相关方: （待补充）
 - 决策权: 晋升评估人未指明
@@ -179,7 +179,7 @@ Total tests: 93, passed: 93, failed: 0.
 
 ## 4. 双面与环境解读
 - 用户侧: （待补充）
-- 老板侧: （待补充）
+- 对方侧: （待补充）
 - 环境: （待补充）
 - 相关方: （待补充）
 - 决策权: （待补充）
