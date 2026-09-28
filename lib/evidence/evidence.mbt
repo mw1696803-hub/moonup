@@ -1,7 +1,7 @@
 ///|
 /// Evidence 证据分级与置信度模块。
 ///
-/// 对应向上管理教练素材 references/07-evidence-confidence.md：
+/// 对应参考决策方法论素材 references/07-evidence-confidence.md：
 /// 给每条陈述标注来源类型、权重（High/Medium/Low）与分离类型
 /// （已知事实/合理推断/未验证假设），再合成整体置信度。
 ///

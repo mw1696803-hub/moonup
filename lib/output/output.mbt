@@ -1,7 +1,7 @@
 ///|
 /// Output 结构化输出模块（12 段模板）。
 ///
-/// 对应向上管理教练素材 SKILL.md 的 Default Output Shape：
+/// 对应参考决策方法论素材 SKILL.md 的 Default Output Shape：
 /// 1.OGS-M 清洗 2.认知定位 3.假设空间 4.双面与环境解读 5.用户状态与韧性校准
 /// 6.证据与置信度 7.相关案例参考 8.专业动作 9.第三选项 10.建议动作 11.脚本 12.下一步观察。
 ///
@@ -62,7 +62,7 @@ pub fn OutputEngine::render(_self : OutputEngine, inputs : ReportInputs) -> Stri
 
   s = s + "\n## 4. 双面与环境解读\n"
   s = s + "- 用户侧: " + get_or(inputs, "user_side") + "\n"
-  s = s + "- 老板侧: " + get_or(inputs, "boss_side") + "\n"
+  s = s + "- 对方侧: " + get_or(inputs, "counterparty_side") + "\n"
   s = s + "- 环境: " + get_or(inputs, "environment") + "\n"
   s = s + "- 相关方: " + get_or(inputs, "stakeholders") + "\n"
   s = s + "- 决策权: " + get_or(inputs, "decision_rights") + "\n"
@@ -110,9 +110,9 @@ pub fn OutputEngine::safety_boundaries() -> Array[String] {
     "涉及法律/HR/劳动纠纷时只给风险提示并建议专业咨询",
     "漂亮话权重不能压过重复行为",
     "直觉是风险信号，不是已证实的事实",
-    "多领导分歧时不默认嗓门大的人拥有决策权，先识别决策权/评估权/资源权/背锅风险",
-    "老板向下授权时，区分健康分布式判断与模糊责任转移",
-    "冲突可能源于组织设计时，先找缺失机制，再归因于老板性格或用户弱点",
+    "多方分歧时不默认嗓门大的人拥有决策权，先识别决策权/评估权/资源权/背锅风险",
+    "对方向下授权时，区分健康分布式判断与模糊责任转移",
+    "冲突可能源于组织设计时，先找缺失机制，再归因于对方性格或自身弱点",
   ]
 }
 

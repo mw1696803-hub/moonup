@@ -111,7 +111,7 @@ pub fn run(input : String) -> String {
   oi.set("hypothesis_b", hyp.hypotheses[1].statement)
   oi.set("priority", hyp.most_worth_prioritizing)
   oi.set("user_side", "（由输入记录推断，待补充）")
-  oi.set("boss_side", "（由输入记录推断，待补充）")
+  oi.set("counterparty_side", "（由输入记录推断，待补充）")
   oi.set("decision_rights", "（待补充）")
   oi.set("capacity", "可执行书面确认动作")
   oi.set("protect", "避免把口头承诺当结果")

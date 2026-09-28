@@ -1,7 +1,7 @@
 ///|
 /// Hypothesis 假设空间模块。
 ///
-/// 对应向上管理教练素材 references/07-evidence-confidence.md 的 Hypothesis Check
+/// 对应参考决策方法论素材 references/07-evidence-confidence.md 的 Hypothesis Check
 /// 与 SKILL.md 输出模板第 3 段：
 /// - 情境开放时先列 2-4 个可能假设再选解释；
 /// - 每个假设给出：什么会使它为真 / 支持证据 / 反对证据 / 缺失信息 / 过早假设风险 / 验证动作；

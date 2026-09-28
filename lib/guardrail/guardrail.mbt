@@ -1,8 +1,8 @@
 ﻿///|
 /// Guardrail 防偏见护栏模块。
 ///
-/// 对应向上管理教练素材 references/06-bias-guardrails.md：
-/// 在分析转述、录音、情绪化叙述或漂亮的老板话术时，
+/// 对应参考决策方法论素材 references/06-bias-guardrails.md：
+/// 在分析转述、录音、情绪化叙述或漂亮的对方话术时，
 /// 检查 8 类认知/叙述偏差，触发护栏后强制给出 5 项必查（Required Check）。
 ///
 /// 输入：结构化信号（转述含痛苦词/措辞漂亮/行为矛盾/用户疲惫等）；
@@ -65,7 +65,7 @@ fn GuardrailType::note(self : GuardrailType) -> String {
 /// 输入信号（由上游清洗或调用方填入）
 pub struct GuardrailSignals {
   mut retelling_has_pain : Bool  // 转述含痛苦/委屈等情绪词
-  mut boss_wording_polished : Bool // 老板措辞漂亮
+  mut counterparty_wording_polished : Bool // 对方措辞漂亮
   mut behavior_contradicts : Bool  // 行为与措辞矛盾
   mut culture_note_present : Bool  // 存在组织文化背景
   mut user_tired : Bool            // 用户疲惫
@@ -79,7 +79,7 @@ pub struct GuardrailSignals {
 pub fn GuardrailSignals::new() -> GuardrailSignals {
   {
     retelling_has_pain: false,
-    boss_wording_polished: false,
+    counterparty_wording_polished: false,
     behavior_contradicts: false,
     culture_note_present: false,
     user_tired: false,
@@ -92,10 +92,10 @@ pub fn GuardrailSignals::new() -> GuardrailSignals {
 
 /// 全参数创建信号（跨包使用时推荐）
 ///
-/// 参数顺序：痛苦转述 / 措辞漂亮 / 行为矛盾 / 文化背景 / 疲惫 / 高期待 / 仅感觉 / 仅转写 / 有硬证据
+/// 参数顺序：痛苦转述 / 对方措辞漂亮 / 行为矛盾 / 文化背景 / 疲惫 / 高期待 / 仅感觉 / 仅转写 / 有硬证据
 pub fn GuardrailSignals::make(
   retelling_has_pain : Bool,
-  boss_wording_polished : Bool,
+  counterparty_wording_polished : Bool,
   behavior_contradicts : Bool,
   culture_note_present : Bool,
   user_tired : Bool,
@@ -106,7 +106,7 @@ pub fn GuardrailSignals::make(
 ) -> GuardrailSignals {
   {
     retelling_has_pain,
-    boss_wording_polished,
+    counterparty_wording_polished,
     behavior_contradicts,
     culture_note_present,
     user_tired,
@@ -146,7 +146,7 @@ pub fn GuardrailEngine::check(_self : GuardrailEngine, s : GuardrailSignals) -> 
   if s.retelling_has_pain {
     arr_push_once(triggered, RetellingOverrepresentsPain)
   }
-  if s.boss_wording_polished && s.behavior_contradicts {
+  if s.counterparty_wording_polished && s.behavior_contradicts {
     arr_push_once(triggered, WordingBehaviorContradiction)
   }
   if s.culture_note_present {
@@ -155,7 +155,7 @@ pub fn GuardrailEngine::check(_self : GuardrailEngine, s : GuardrailSignals) -> 
   if s.user_tired {
     arr_push_once(triggered, DepletionDistorts)
   }
-  if s.user_high_hope && s.boss_wording_polished {
+  if s.user_high_hope && s.counterparty_wording_polished {
     arr_push_once(triggered, HopeDistorts)
   }
   if s.feeling_only && !s.has_hard_evidence {
@@ -199,7 +199,7 @@ test "无信号 → 全部通过 safe=true" {
 ///|
 test "措辞漂亮 + 行为矛盾 → 触发矛盾护栏" {
   let s = GuardrailSignals::new()
-  s.boss_wording_polished = true
+  s.counterparty_wording_polished = true
   s.behavior_contradicts = true
   let r = GuardrailEngine::new().check(s)
   assert_false(r.safe)
@@ -219,7 +219,7 @@ test "疲惫 → 触发疲惫护栏" {
 test "急需认可 + 措辞漂亮 → 触发希望扭曲" {
   let s = GuardrailSignals::new()
   s.user_high_hope = true
-  s.boss_wording_polished = true
+  s.counterparty_wording_polished = true
   let r = GuardrailEngine::new().check(s)
   assert_true(contains_type(r.triggered, HopeDistorts))
   assert_true(contains_note(r.notes, "验证动作"))

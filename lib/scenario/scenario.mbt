@@ -1,7 +1,7 @@
 ///|
 /// Scenario 场景路由模块。
 ///
-/// 对应向上管理教练素材 references/10-scenario-router.md：
+/// 对应参考决策方法论素材 references/10-scenario-router.md：
 /// 在写建议前先选定最接近的场景（16 类），命中多个时给出 top 2，
 /// 并按路由规则附加处理提示（多领导先对齐、跨职能组合工具、组织机制先看系统）。
 ///
@@ -81,72 +81,66 @@ pub struct RouteResult {
   routable : Bool
 }
 
-/// 场景路由器
+/// 场景配置条目（场景 + 关键词表；关键词即规则：特征包含任一关键词 → 该场景命中）
+pub struct ScenarioDef {
+  scenario : Scenario
+  keywords : Array[String]
+}
+
+/// 创建场景配置条目
+pub fn ScenarioDef::new(scenario : Scenario, keywords : Array[String]) -> ScenarioDef {
+  { scenario, keywords }
+}
+
+/// 场景路由器（配置驱动：关键词表可替换为使用者自定义规则集）
 pub struct ScenarioRouter {
   version : String
+  config : Array[ScenarioDef]
 }
 
-/// 创建路由器
+/// 创建路由器（内置 16 类示例配置）
 pub fn ScenarioRouter::new() -> ScenarioRouter {
-  { version: "scenario-v1" }
+  { version: "scenario-v1", config: default_config() }
 }
 
-/// 所有场景（固定顺序，作为评分索引）
-fn all_scenarios() -> Array[Scenario] {
+/// 注入自定义配置创建路由器（预置规则包可替换，机制复用、内容自备）
+pub fn ScenarioRouter::with_config(config : Array[ScenarioDef]) -> ScenarioRouter {
+  { version: "scenario-v1", config }
+}
+
+/// 默认场景配置（16 类示例规则包；使用者可通过 with_config 注入自定义规则集）
+pub fn default_config() -> Array[ScenarioDef] {
   [
-    ReportingUpward,
-    AskingForResources,
-    ClarifyingVagueRequirements,
-    ExtraWorkNoSchedule,
-    ResponsibilityWithoutAuthority,
-    MultipleLeadersConflicting,
-    UnclearDecisionOwner,
-    CrossFunctionalStakeholder,
-    BossPromiseRosyTalk,
-    BlamePrevention,
-    PerfPromoSalary,
-    ConflictDeescalation,
-    EmotionalConsumption,
-    HrLaborRisk,
-    ExitLossReduction,
-    OrganizationMechanism,
+    ScenarioDef::new(ReportingUpward, ["汇报", "周报", "同步进展", "向上同步"]),
+    ScenarioDef::new(AskingForResources, ["要资源", "要预算", "加人", "人力", "经费", "资源不够", "申请资源"]),
+    ScenarioDef::new(ClarifyingVagueRequirements, ["需求不清", "目标模糊", "要求模糊", "说不清", "范围不清", "标准不清"]),
+    ScenarioDef::new(ExtraWorkNoSchedule, ["加活", "额外任务", "排期没变", "临时加活", "不加时间"]),
+    ScenarioDef::new(ResponsibilityWithoutAuthority, ["有责无权", "背锅", "没有授权", "没权", "责任不清"]),
+    ScenarioDef::new(MultipleLeadersConflicting, ["两个领导", "两个老板", "多头", "领导冲突", "汇报线冲突"]),
+    ScenarioDef::new(UnclearDecisionOwner, ["谁拍板", "决策人", "隐形评估", "找不到负责人", "没人拍板"]),
+    ScenarioDef::new(CrossFunctionalStakeholder, ["跨部门", "跨职能", "部门墙", "协作受阻", "其他部门不配合"]),
+    ScenarioDef::new(BossPromiseRosyTalk, ["画饼", "漂亮话", "会考虑", "好好干", "口头承诺"]),
+    ScenarioDef::new(BlamePrevention, ["甩锅", "背黑锅", "推卸责任", "防背锅", "责任推给别人"]),
+    ScenarioDef::new(PerfPromoSalary, ["晋升", "绩效", "加薪", "涨薪", "考核", "评级", "工资"]),
+    ScenarioDef::new(ConflictDeescalation, ["冲突", "吵架", "争执", "对抗", "吵起来"]),
+    ScenarioDef::new(EmotionalConsumption, ["内耗", "心累", "委屈", "焦虑", "情绪消耗", "难受"]),
+    ScenarioDef::new(HrLaborRisk, ["裁员", "仲裁", "辞退", "劳动风险", "合规", "hr"]),
+    ScenarioDef::new(ExitLossReduction, ["离职", "跳槽", "止损", "交接", "准备离开"]),
+    ScenarioDef::new(OrganizationMechanism, ["流程问题", "机制", "激励", "文化", "组织问题", "系统"]),
   ]
-}
-
-/// 场景关键词表
-fn scenario_keywords(s : Scenario) -> Array[String] {
-  match s {
-    ReportingUpward => ["汇报", "周报", "同步进展", "向上同步"]
-    AskingForResources => ["要资源", "要预算", "加人", "人力", "经费", "资源不够", "申请资源"]
-    ClarifyingVagueRequirements => ["需求不清", "目标模糊", "要求模糊", "说不清", "范围不清", "标准不清"]
-    ExtraWorkNoSchedule => ["加活", "额外任务", "排期没变", "临时加活", "不加时间"]
-    ResponsibilityWithoutAuthority => ["有责无权", "背锅", "没有授权", "没权", "责任不清"]
-    MultipleLeadersConflicting => ["两个领导", "两个老板", "多头", "领导冲突", "汇报线冲突"]
-    UnclearDecisionOwner => ["谁拍板", "决策人", "隐形评估", "找不到负责人", "没人拍板"]
-    CrossFunctionalStakeholder => ["跨部门", "跨职能", "部门墙", "协作受阻", "其他部门不配合"]
-    BossPromiseRosyTalk => ["画饼", "漂亮话", "会考虑", "好好干", "口头承诺"]
-    BlamePrevention => ["甩锅", "背黑锅", "推卸责任", "防背锅", "责任推给别人"]
-    PerfPromoSalary => ["晋升", "绩效", "加薪", "涨薪", "考核", "评级", "工资"]
-    ConflictDeescalation => ["冲突", "吵架", "争执", "对抗", "吵起来"]
-    EmotionalConsumption => ["内耗", "心累", "委屈", "焦虑", "情绪消耗", "难受"]
-    HrLaborRisk => ["裁员", "仲裁", "辞退", "劳动风险", "合规", "hr"]
-    ExitLossReduction => ["离职", "跳槽", "止损", "交接", "准备离开"]
-    OrganizationMechanism => ["流程问题", "机制", "激励", "文化", "组织问题", "系统"]
-  }
 }
 
 /// 路由：扫描特征词 → 统计各场景命中数 → 取 top2 + 规则提示
 ///
-/// 路由规则（素材）：
-/// - 多领导 → 提示先对齐再执行
-/// - 跨职能受阻 → 提示组合 stakeholder/需求诊断/脚本库
-/// - 组织机制 → 提示先看系统再归因
-pub fn ScenarioRouter::route(_self : ScenarioRouter, features : Array[String]) -> RouteResult {
-  let scenarios = all_scenarios()
+/// 配置驱动：关键词表来自 config（可注入自定义规则集）
+pub fn ScenarioRouter::route(self : ScenarioRouter, features : Array[String]) -> RouteResult {
+  if self.config.length() == 0 {
+    return { primary: ReportingUpward, secondary: [], matched: [], hint: "未配置任何场景规则：请通过 with_config 注入规则集", routable: false }
+  }
   let scores : Array[Int] = []
   let matched_all : Array[Array[String]] = []
-  for s in scenarios {
-    let kws = scenario_keywords(s)
+  for d in self.config {
+    let kws = d.keywords
     let mut cnt = 0
     let hit : Array[String] = []
     for f in features {
@@ -165,7 +159,7 @@ pub fn ScenarioRouter::route(_self : ScenarioRouter, features : Array[String]) -
     matched_all.push(hit)
   }
 
-  // 取最高分（primary）与次高分（secondary），同分按枚举顺序
+  // 取最高分（primary）与次高分（secondary），同分按配置顺序
   let mut best = -1
   let mut second = -1
   let mut i = 0
@@ -180,11 +174,11 @@ pub fn ScenarioRouter::route(_self : ScenarioRouter, features : Array[String]) -
   }
 
   if best == -1 || scores[best] <= 0 {
-    { primary: ReportingUpward, secondary: [], matched: [], hint: "特征不足：请补充更多情境信息（谁、发生了什么、卡在哪）后再路由", routable: false }
+    { primary: self.config[0].scenario, secondary: [], matched: [], hint: "特征不足：请补充更多情境信息（谁、发生了什么、卡在哪）后再路由", routable: false }
   } else {
-    let primary = scenarios[best]
+    let primary = self.config[best].scenario
     let secondary = if second != -1 && scores[second] > 0 {
-      [scenarios[second]]
+      [self.config[second].scenario]
     } else {
       []
     }
