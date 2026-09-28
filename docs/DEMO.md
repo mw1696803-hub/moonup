@@ -8,7 +8,7 @@
 git clone https://github.com/mw1696803-hub/moonup.git
 cd moonup
 moon install        # 拉取依赖（仅 MoonBit core，无第三方依赖）
-moon test           # 107 个单元测试
+moon test           # 112 个单元测试
 moon run main       # 端到端 Demo：通用引擎 demo（客服分流+风控审核）+ 7 模块管线 + 12 段报告 + MVP 单情境全链路
 moon run tools/export_cases > cases/cases.json   # 可选：导出案例库落盘示例
 ```
@@ -23,7 +23,7 @@ moon run tools/export_cases > cases/cases.json   # 可选：导出案例库落�
 ### 1. moon test
 
 ```
-Total tests: 107, passed: 107, failed: 0.
+Total tests: 112, passed: 112, failed: 0.
 ```
 
 ### 2. moon run main（完整 8 段输出）

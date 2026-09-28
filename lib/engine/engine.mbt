@@ -185,11 +185,12 @@ fn num_cmp(f : Fact, key : String, expected : String, op : (Int, Int) -> Bool) -
   op(av, bv)
 }
 
-/// 字符串转 Int（严格：整个字符串必须是可选负号+纯数字，否则失败）
+/// 字符串转 Int（严格：整个字符串必须是可选负号+至少一位数字，否则失败）
 fn parse_int_safe(s : String) -> (Int, Bool) {
   let mut n = 0
   let mut neg = false
   let mut started = false
+  let mut has_digit = false
   for ch in s {
     if ch == '-' && !started {
       neg = true
@@ -212,30 +213,27 @@ fn parse_int_safe(s : String) -> (Int, Bool) {
     if d >= 0 {
       n = n * 10 + d
       started = true
+      has_digit = true
     } else {
       return (0, false)
     }
   }
-  if n == 0 && !started {
+  if !has_digit {
     return (0, false)
   }
   if neg { (-n, true) } else { (n, true) }
 }
 
-/// 二元切分（取第一个分隔符前后）
+/// 二元切分（分隔符必须恰好出现一次，否则返回空 key 表示非法）
 fn split_binary(s : String, sep : String) -> (String, String) {
-  let mut left = ""
-  let mut right = ""
-  let mut first = true
+  let parts : Array[String] = []
   for p in s.split(sep) {
-    if first {
-      left = p.trim().to_owned()
-    } else {
-      right = p.trim().to_owned()
-    }
-    first = false
+    parts.push(p.trim().to_owned())
   }
-  (left, right)
+  if parts.length() != 2 {
+    return ("", "")
+  }
+  (parts[0], parts[1])
 }
 
 /// 冲突消解排序：priority 降序，同优先级保持声明顺序（稳定）
@@ -456,4 +454,23 @@ test "数字比较：负数正常比较" {
   let r = e.execute(f)
   assert_eq(r.matched.length(), 1)
   assert_eq(r.facts.get("action"), "结冰")
+}
+
+
+///|
+test "数字比较：单独负号不命中" {
+  let f = Fact::new()
+  f.set("amount", "-")
+  let e = RuleEngine::new([Rule::new("r1", "zero", "amount<=0", "action=兜底", 1, "零")])
+  let r = e.execute(f)
+  assert_eq(r.matched.length(), 0)
+}
+
+///|
+test "数字比较：重复运算符 >> 不命中" {
+  let f = Fact::new()
+  f.set("amount", "150")
+  let e = RuleEngine::new([Rule::new("r1", "gt100", "amount>>100", "action=命中", 1, "双大于")])
+  let r = e.execute(f)
+  assert_eq(r.matched.length(), 0)
 }
