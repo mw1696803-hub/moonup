@@ -192,3 +192,54 @@ fn join_sep(arr : Array[String]) -> String {
   }
   s
 }
+
+/// 通用引擎演示：两个完全不同业务领域共用同一个 @engine 核心
+/// 不接受输入，直接跑客服分流 + 风控审核两个例子
+#export_name("moonup_demo_engine")
+pub fn demo_engine() -> String {
+  let mut out = "=== 通用规则引擎演示：客服分流 + 风控审核 ===\n"
+  out = out + "（同一 @engine.RuleEngine 核心，只换规则数组，引擎零改动）\n\n"
+
+  // --- 场景 A：客服分流 ---
+  out = out + "--- 场景 A：客服分流规则集 ---\n"
+  out = out + "规则:\n"
+  out = out + "  cs1: intent==退款 && vip==true → route=VIP人工坐席 (priority=10)\n"
+  out = out + "  cs2: intent==退款 → route=自助退款流程 (priority=5)\n"
+  out = out + "  cs3: vip==true → tags+=VIP (priority=1)\n"
+  out = out + "输入事实: intent=退款, vip=true\n"
+  let cs_facts = @engine.Fact::new()
+  cs_facts.set("intent", "退款")
+  cs_facts.set("vip", "true")
+  let cs_engine = @engine.RuleEngine::new([
+    @engine.Rule::new("cs1", "VIP退款", "intent==退款 && vip==true", "route=VIP人工坐席", 10, "VIP退款转专属坐席"),
+    @engine.Rule::new("cs2", "普通退款", "intent==退款", "route=自助退款流程", 5, "普通退款走自助"),
+    @engine.Rule::new("cs3", "VIP标签", "vip==true", "tags+=VIP", 1, "所有VIP加标签"),
+  ])
+  let cs_r = cs_engine.execute(cs_facts)
+  out = out + "命中 " + cs_r.matched.length().to_string() + " 条规则\n"
+  out = out + "执行说明: " + join_sep(cs_r.notes) + "\n"
+  out = out + "输出结果: route=" + cs_r.facts.get("route") + ", tags=" + cs_r.facts.get("tags") + "\n\n"
+
+  // --- 场景 B：风控审核 ---
+  out = out + "--- 场景 B：风控审核规则集（同一 engine） ---\n"
+  out = out + "规则:\n"
+  out = out + "  rk1: amount_tier==large && new_customer==true → action=人工复核 (priority=10)\n"
+  out = out + "  rk2: amount_tier==large → action=加强验证 (priority=5)\n"
+  out = out + "  rk3: amount_tier==small → action=自动通过 (priority=1)\n"
+  out = out + "输入事实: amount_tier=large, new_customer=true\n"
+  let rk_facts = @engine.Fact::new()
+  rk_facts.set("amount_tier", "large")
+  rk_facts.set("new_customer", "true")
+  let rk_engine = @engine.RuleEngine::new([
+    @engine.Rule::new("rk1", "大额新客", "amount_tier==large && new_customer==true", "action=人工复核", 10, "大额+新客强制人工"),
+    @engine.Rule::new("rk2", "普通大额", "amount_tier==large", "action=加强验证", 5, "大额加强验证"),
+    @engine.Rule::new("rk3", "小额", "amount_tier==small", "action=自动通过", 1, "小额自动通过"),
+  ])
+  let rk_r = rk_engine.execute(rk_facts)
+  out = out + "命中 " + rk_r.matched.length().to_string() + " 条规则\n"
+  out = out + "执行说明: " + join_sep(rk_r.notes) + "\n"
+  out = out + "输出结果: action=" + rk_r.facts.get("action") + "\n\n"
+
+  out = out + "↑ 客服分流与风控审核共用 @engine 核心；向上管理仅是另一个内置规则包。"
+  out
+}

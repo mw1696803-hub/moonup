@@ -131,8 +131,16 @@
     </div>
   </header>
 
+  <!-- ===== 通用引擎演示（自动运行）===== -->
+  <div class="sec-title"><span class="n">00</span>通用引擎演示——同一 WASM 核心，两个完全不同业务</div>
+  <div class="outbox show" id="engine-demo-box">
+    <h4>@engine 实时运行（浏览器本地 WASM）</h4>
+    <pre id="engine-demo-pre">正在加载 WASM…</pre>
+    <div class="engine-note">↑ 客服分流与风控审核共用同一个 RuleEngine 核心，只换规则数组。下面 01-03 是向上管理示例规则包。</div>
+  </div>
+
   <!-- ===== 情境输入 ===== -->
-  <div class="sec-title"><span class="n">01</span>情境输入（结构化记录）</div>
+  <div class="sec-title"><span class="n">01</span>情境输入（向上管理示例规则包）</div>
   <div class="scene">
     <div class="label">用户提交的互动记录 → 已清洗为结构化输入</div>
     <div class="row">
