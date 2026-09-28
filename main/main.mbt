@@ -1,9 +1,36 @@
-/// Upward Management Core — 向上管理决策引擎（CLI Demo）
+/// MoonUp — 确定性规则引擎库（CLI Demo）
 fn main {
-  println("=== Upward Management Core Demo ===")
+  println("=== MoonUp Rule Engine Demo ===")
+
+  // --- 通用规则引擎 Demo：两个完全不同业务，同一个 @engine 核心 ---
+  println("\n[0] 通用规则引擎（@engine，与业务语义完全解耦）")
+  println("    场景 A：客服分流规则集")
+  let cs_facts = @engine.Fact::new()
+  cs_facts.set("intent", "退款")
+  cs_facts.set("vip", "true")
+  let cs_engine = @engine.RuleEngine::new([
+    @engine.Rule::new("cs1", "VIP退款", "intent==退款 && vip==true", "route=VIP人工坐席", 10, "VIP退款转专属坐席"),
+    @engine.Rule::new("cs2", "普通退款", "intent==退款", "route=自助退款流程", 5, "普通退款走自助"),
+    @engine.Rule::new("cs3", "VIP标签", "vip==true", "tags+=VIP", 1, "所有VIP加标签"),
+  ])
+  let cs_r = cs_engine.execute(cs_facts)
+  println("    命中 " + cs_r.matched.length().to_string() + " 条规则 → route=" + cs_r.facts.get("route") + "  tags=" + cs_r.facts.get("tags"))
+
+  println("    场景 B：风控审核规则集（同一 engine，换规则数组，引擎零改动）")
+  let rk_facts = @engine.Fact::new()
+  rk_facts.set("amount_tier", "large")
+  rk_facts.set("new_customer", "true")
+  let rk_engine = @engine.RuleEngine::new([
+    @engine.Rule::new("rk1", "大额新客", "amount_tier==large && new_customer==true", "action=人工复核", 10, "大额+新客强制人工"),
+    @engine.Rule::new("rk2", "普通大额", "amount_tier==large", "action=加强验证", 5, "大额加强验证"),
+    @engine.Rule::new("rk3", "小额", "amount_tier==small", "action=自动通过", 1, "小额自动通过"),
+  ])
+  let rk_r = rk_engine.execute(rk_facts)
+  println("    命中 " + rk_r.matched.length().to_string() + " 条规则 → action=" + rk_r.facts.get("action"))
+  println("    ↑ 客服分流与风控审核共用 @engine 核心；下面 [1]-[8] 是向上管理示例规则包")
 
   // --- OGS-M 清洗示例 ---
-  println("\n[1] OGS-M 情境清洗")
+  println("\n[1] OGS-M 情境清洗（示例规则包：向上管理）")
   let ogsm_engine = @ogsm.OgsmEngine::new()
   let sep = @ogsm.FactSeparation::new()
   sep.feelings.push("很委屈，又要背锅")
