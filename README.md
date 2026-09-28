@@ -1,6 +1,6 @@
 ﻿# MoonUp Rules：MoonBit 可嵌入式确定性规则引擎
 
-**规则即数据**：使用者定义规则集（条件→动作），引擎确定性执行；同一输入永远得到同一输出，不产生幻觉。核心是一个与业务语义完全解耦的轻量规则引擎，设计思路参考 Drools / json-rules-engine 等成熟方案但保持嵌入式定位，为 MoonBit 生态补齐"规则执行"这一标准件位置。
+**规则即数据**：使用者定义规则集（条件→动作），引擎确定性执行；同一规则集 + 同一结构化事实恒得到同一结果，不做生成式推断。核心是一个与业务语义完全解耦的轻量规则引擎，设计思路参考 Drools / json-rules-engine 等成熟方案但保持嵌入式定位，为 MoonBit 生态补齐"规则执行"这一标准件位置。
 
 > 向上管理仅作为首个内置示例规则包（16 类场景），通过 `with_config` 可整体替换为客服分流、风控审核、工单路由、API 校验等任意业务规则。
 
@@ -36,14 +36,14 @@ MoonUp 是 MoonBit 生态的确定性规则引擎库：
 ## 通用示例（同一引擎，三个不同领域）
 
 ```moonbit
-// 客服分流
-Rule("refund_high_value", "intent==退款 && amount>1000 && VIP==true", "route=人工坐席, priority=high")
+// 客服分流（与 main.mbt 中 demo 一致）
+Rule("cs1", "VIP退款", "intent==退款 && vip==true", "route=VIP人工坐席", 10, "VIP退款转专属坐席")
 
-// 风控审核
-Rule("risk_review", "amount>100000 && new_customer==true && risk_score>0.7", "action=人工复核")
+// 风控审核（与 main.mbt 中 demo 一致）
+Rule("rk1", "大额新客", "amount_tier==large && new_customer==true", "action=人工复核", 10, "大额+新客强制人工")
 
 // API 业务分层
-Rule("tier_high", "intent~=高 && region==华东", "tier=高价值客户")
+Rule("tier_high", "intent~=高 && region==华东", "tier=高价值客户", 5, "高意向+华东")
 ```
 
 引擎核心不包含任何向上管理业务语义；向上管理规则包仅为第一个内置示例。
@@ -96,7 +96,7 @@ MVP 阶段聚焦"规则即数据 + 确定性执行 + 可测试"这条主链，�
 ```bash
 moon run main    # 端到端 Demo
 moon test        # 101 个单元测试
-moon run tools/export_cases > cases/cases/cases.json  # 导出案例库落盘示例
+moon run tools/export_cases > cases/cases.json  # 导出案例库落盘示例
 ```
 
 ## 网页演示
