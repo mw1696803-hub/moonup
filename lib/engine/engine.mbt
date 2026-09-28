@@ -152,36 +152,45 @@ fn eval_single(c : String, f : Fact) -> Bool {
     let (key, value) = split_binary(c, "~=")
     return f.get(key).contains(value)
   }
-  // 数字比较（注意：>= <= 必须在 > < 之前判断）
+  // 数字比较（注意：>= <= 必须在 > < 之前判断；字段缺失或非数字一律不匹配）
   if c.contains(">=") {
     let (key, value) = split_binary(c, ">=")
-    return cmp_num(f.get(key), value) >= 0
+    return num_cmp(f, key, value, fn(x, y) { x >= y })
   }
   if c.contains("<=") {
     let (key, value) = split_binary(c, "<=")
-    return cmp_num(f.get(key), value) <= 0
+    return num_cmp(f, key, value, fn(x, y) { x <= y })
   }
   if c.contains(">") {
     let (key, value) = split_binary(c, ">")
-    return cmp_num(f.get(key), value) > 0
+    return num_cmp(f, key, value, fn(x, y) { x > y })
   }
   if c.contains("<") {
     let (key, value) = split_binary(c, "<")
-    return cmp_num(f.get(key), value) < 0
+    return num_cmp(f, key, value, fn(x, y) { x < y })
   }
   false // 未知条件 → 不匹配（宁可保守）
 }
 
-/// 数字比较：把字符串解析成 Int 后比较；解析失败返回 0（视为不匹配）
-fn cmp_num(a : String, b : String) -> Int {
-  parse_int(a) - parse_int(b)
+/// 数字比较辅助：字段不存在或值非数字 → 不匹配（false）
+fn num_cmp(f : Fact, key : String, expected : String, op : (Int, Int) -> Bool) -> Bool {
+  if !f.has(key) {
+    return false
+  }
+  let (av, a_ok) = parse_int_safe(f.get(key))
+  let (bv, b_ok) = parse_int_safe(expected)
+  if !a_ok || !b_ok {
+    return false
+  }
+  op(av, bv)
 }
 
-/// 简易字符串转 Int（支持负号，非法字符按 0 处理）
-fn parse_int(s : String) -> Int {
+/// 字符串转 Int，返回 (值, 是否成功解析到至少一位数字)
+fn parse_int_safe(s : String) -> (Int, Bool) {
   let mut n = 0
   let mut neg = false
   let mut started = false
+  let mut has_digit = false
   for ch in s {
     if ch == '-' && !started {
       neg = true
@@ -203,11 +212,12 @@ fn parse_int(s : String) -> Int {
     if d >= 0 {
       n = n * 10 + d
       started = true
+      has_digit = true
     } else if started {
       break
     }
   }
-  if neg { -n } else { n }
+  if neg { (-n, has_digit) } else { (n, has_digit) }
 }
 
 /// 二元切分（取第一个分隔符前后）
@@ -398,4 +408,22 @@ test "数字比较与 == 混用" {
   let r = e.execute(f)
   assert_eq(r.matched.length(), 1)
   assert_eq(r.facts.get("tier"), "VIP高价值")
+}
+
+///|
+test "数字比较：字段缺失不命中" {
+  let f = Fact::new()
+  // amount 字段不存在，amount<=0 不应命中（旧 bug：缺失被解析为 0）
+  let e = RuleEngine::new([Rule::new("r1", "zero", "amount<=0", "action=兜底", 1, "金额为0")])
+  let r = e.execute(f)
+  assert_eq(r.matched.length(), 0)
+}
+
+///|
+test "数字比较：非数字值不命中" {
+  let f = Fact::new()
+  f.set("amount", "large")
+  let e = RuleEngine::new([Rule::new("r1", "big", "amount>1000", "action=人工复核", 1, "大额")])
+  let r = e.execute(f)
+  assert_eq(r.matched.length(), 0)
 }
