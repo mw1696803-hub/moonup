@@ -11,6 +11,10 @@
 ///   key==value   等于
 ///   key!=value   不等于
 ///   key~=value   包含子串
+///   key>n        数字大于（n 为整数）
+///   key<n        数字小于
+///   key>=n       数字大于等于
+///   key<=n       数字小于等于
 ///
 /// 动作 DSL（action）：
 ///   key=value    覆盖式设置（同字段只采纳最高优先级那条）
@@ -134,7 +138,7 @@ fn eval_condition(cond : String, f : Fact) -> Bool {
   ok
 }
 
-/// 单条件求值：== / != / ~=
+/// 单条件求值：== / != / ~= / 数字比较
 fn eval_single(c : String, f : Fact) -> Bool {
   if c.contains("!=") {
     let (key, value) = split_binary(c, "!=")
@@ -148,7 +152,62 @@ fn eval_single(c : String, f : Fact) -> Bool {
     let (key, value) = split_binary(c, "~=")
     return f.get(key).contains(value)
   }
+  // 数字比较（注意：>= <= 必须在 > < 之前判断）
+  if c.contains(">=") {
+    let (key, value) = split_binary(c, ">=")
+    return cmp_num(f.get(key), value) >= 0
+  }
+  if c.contains("<=") {
+    let (key, value) = split_binary(c, "<=")
+    return cmp_num(f.get(key), value) <= 0
+  }
+  if c.contains(">") {
+    let (key, value) = split_binary(c, ">")
+    return cmp_num(f.get(key), value) > 0
+  }
+  if c.contains("<") {
+    let (key, value) = split_binary(c, "<")
+    return cmp_num(f.get(key), value) < 0
+  }
   false // 未知条件 → 不匹配（宁可保守）
+}
+
+/// 数字比较：把字符串解析成 Int 后比较；解析失败返回 0（视为不匹配）
+fn cmp_num(a : String, b : String) -> Int {
+  parse_int(a) - parse_int(b)
+}
+
+/// 简易字符串转 Int（支持负号，非法字符按 0 处理）
+fn parse_int(s : String) -> Int {
+  let mut n = 0
+  let mut neg = false
+  let mut started = false
+  for ch in s {
+    if ch == '-' && !started {
+      neg = true
+      continue
+    }
+    let d = match ch {
+      '0' => 0
+      '1' => 1
+      '2' => 2
+      '3' => 3
+      '4' => 4
+      '5' => 5
+      '6' => 6
+      '7' => 7
+      '8' => 8
+      '9' => 9
+      _ => -1
+    }
+    if d >= 0 {
+      n = n * 10 + d
+      started = true
+    } else if started {
+      break
+    }
+  }
+  if neg { -n } else { n }
 }
 
 /// 二元切分（取第一个分隔符前后）
@@ -300,4 +359,43 @@ test "缺失字段按空串处理" {
   let r = e.execute(f)
   assert_eq(r.matched.length(), 0)
   assert_eq(f.get("name"), "")
+}
+
+///|
+test "数字大于条件" {
+  let f = Fact::new()
+  f.set("amount", "1500")
+  let e = RuleEngine::new([Rule::new("r1", "big", "amount>1000", "action=人工复核", 1, "大额")])
+  let r = e.execute(f)
+  assert_eq(r.matched.length(), 1)
+  assert_eq(r.facts.get("action"), "人工复核")
+}
+
+///|
+test "数字小于等于条件" {
+  let f = Fact::new()
+  f.set("age", "18")
+  let e = RuleEngine::new([Rule::new("r1", "minor", "age<=18", "tag=未成年", 1, "未成年")])
+  let r = e.execute(f)
+  assert_eq(r.matched.length(), 1)
+}
+
+///|
+test "数字比较不命中边界" {
+  let f = Fact::new()
+  f.set("score", "100")
+  let e = RuleEngine::new([Rule::new("r1", "gt100", "score>100", "level=A", 1, "大于100")])
+  let r = e.execute(f)
+  assert_eq(r.matched.length(), 0)
+}
+
+///|
+test "数字比较与 == 混用" {
+  let f = Fact::new()
+  f.set("vip", "true")
+  f.set("orders", "12")
+  let e = RuleEngine::new([Rule::new("r1", "vip_high", "vip==true && orders>10", "tier=VIP高价值", 1, "VIP+高频")])
+  let r = e.execute(f)
+  assert_eq(r.matched.length(), 1)
+  assert_eq(r.facts.get("tier"), "VIP高价值")
 }

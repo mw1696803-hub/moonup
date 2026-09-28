@@ -1,4 +1,4 @@
-/// MoonUp — 确定性规则引擎库（CLI Demo）
+﻿/// MoonUp — 确定性规则引擎库（CLI Demo）
 fn main {
   println("=== MoonUp Rule Engine Demo ===")
 
@@ -18,12 +18,13 @@ fn main {
 
   println("    场景 B：风控审核规则集（同一 engine，换规则数组，引擎零改动）")
   let rk_facts = @engine.Fact::new()
-  rk_facts.set("amount_tier", "large")
+  rk_facts.set("amount", "150000")
   rk_facts.set("new_customer", "true")
+  rk_facts.set("risk_score", "85")
   let rk_engine = @engine.RuleEngine::new([
-    @engine.Rule::new("rk1", "大额新客", "amount_tier==large && new_customer==true", "action=人工复核", 10, "大额+新客强制人工"),
-    @engine.Rule::new("rk2", "普通大额", "amount_tier==large", "action=加强验证", 5, "大额加强验证"),
-    @engine.Rule::new("rk3", "小额", "amount_tier==small", "action=自动通过", 1, "小额自动通过"),
+    @engine.Rule::new("rk1", "大额新客", "amount>100000 && new_customer==true", "action=人工复核", 10, "大额+新客强制人工"),
+    @engine.Rule::new("rk2", "普通大额", "amount>100000", "action=加强验证", 5, "大额加强验证"),
+    @engine.Rule::new("rk3", "小额", "amount<1000", "action=自动通过", 1, "小额自动通过"),
   ])
   let rk_r = rk_engine.execute(rk_facts)
   println("    命中 " + rk_r.matched.length().to_string() + " 条规则 → action=" + rk_r.facts.get("action"))
