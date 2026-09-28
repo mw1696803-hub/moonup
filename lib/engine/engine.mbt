@@ -1,4 +1,4 @@
-///|
+﻿///|
 /// Engine 通用规则引擎层。
 ///
 /// 定位：MoonBit 生态的确定性规则引擎核心——
@@ -93,7 +93,7 @@ pub struct RuleEngine {
 
 /// 创建引擎（注入规则集）
 pub fn RuleEngine::new(rules : Array[Rule]) -> RuleEngine {
-  { rules }
+  { rules: rules }
 }
 
 /// 执行结果
