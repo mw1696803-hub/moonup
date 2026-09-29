@@ -1,302 +1,227 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MoonUp Rules · 可嵌入式确定性规则引擎</title>
+<title>MoonUp Rules - MoonBit Embeddable Deterministic Rule Engine</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316202B'/%3E%3Ctext x='32' y='45' font-size='38' font-family='Georgia,serif' font-weight='700' text-anchor='middle' fill='%23C98F45'%3EM%3C/text%3E%3C/svg%3E">
 <style>
   :root{
     --bg:#16202b; --panel:#1f2b38; --panel2:#263343; --line:#33445a;
     --ink:#e8e4da; --ink-dim:#9aa5b1; --ink-faint:#6b7686;
-    --paper:#f6f1e7; --paper-line:#d8cfbb; --paper-ink:#2e2a26; --paper-dim:#6f675a;
     --accent:#c98f45; --accent-soft:rgba(201,143,69,.14);
-    --ok:#3f8f6e; --warn:#c96f3f; --warn-soft:rgba(201,111,63,.13); --miss:#8a7f9e;
     --mono:'Cascadia Code','Consolas','Menlo',monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:auto}
   body{background:var(--bg);color:var(--ink);font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;line-height:1.65}
   .wrap{max-width:1120px;margin:0 auto;padding:40px 24px 64px}
-  /* ===== Hero ===== */
   .hero{padding-bottom:28px;border-bottom:1px solid var(--line);margin-bottom:28px}
   .hero .topline{font-family:var(--mono);font-size:12px;color:var(--ink-faint);letter-spacing:2px;margin-bottom:10px}
   .hero h1{font-family:'Noto Serif SC','Songti SC',serif;font-size:32px;font-weight:700;letter-spacing:.5px}
-  .hero .sub{margin-top:10px;color:var(--ink-dim);font-size:15px;max-width:720px;line-height:1.7}
+  .hero .sub{margin-top:10px;color:var(--ink-dim);font-size:15px;max-width:760px;line-height:1.75}
   .hero .sub b{color:var(--accent)}
   .hero .badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
   .badge{border:1px solid var(--line);border-radius:8px;padding:7px 14px;font-size:13px;color:var(--ink-dim);background:var(--panel)}
   .badge b{display:inline;color:var(--accent);font-size:16px;font-weight:700;font-family:var(--mono);margin-right:4px}
-  /* ===== 章节 ===== */
-  .sec-title{font-family:'Noto Serif SC','Songti SC',serif;font-size:19px;font-weight:700;margin:34px 0 14px;display:flex;align-items:center;gap:10px}
+  .sec-title{font-family:'Noto Serif SC','Songti SC',serif;font-size:19px;font-weight:700;margin:36px 0 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .sec-title .n{color:var(--accent);font-family:var(--mono);font-size:13px}
-  /* ===== 情境卡 ===== */
-  .scene{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
-  .scene .label{font-size:12px;color:var(--ink-faint);letter-spacing:1px;margin-bottom:10px}
-  .scene .row{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
-  .scene .kv{flex:1;min-width:220px}
-  .scene .kv b{color:var(--accent);font-weight:600;font-size:13px}
-  .scene .kv p{color:var(--ink);font-size:14px;margin-top:2px}
-  .evs{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
-  .ev{border-left:3px solid var(--accent);background:var(--panel2);padding:9px 12px;font-size:13px;border-radius:0 6px 6px 0}
-  .ev .w{color:var(--ink-faint);font-family:var(--mono);font-size:11px}
-  .ev .t{color:var(--ink);margin-top:1px;font-size:14px}
-  /* ===== 管线 ===== */
-  .pipe{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:14px 0 4px}
-  .pstep{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:11px 8px;text-align:center;cursor:pointer;transition:border-color .18s,background .18s}
-  .pstep:hover{border-color:var(--accent)}
-  .pstep.active{border-color:var(--accent);background:var(--accent-soft)}
-  .pstep .pn{font-family:var(--mono);font-size:10px;color:var(--ink-faint)}
-  .pstep .pnm{font-size:13.5px;font-weight:600;color:var(--ink);margin-top:2px}
-  .pout{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:none}
-  .pout.show{display:block}
-  .pout h4{font-size:14px;color:var(--accent);margin-bottom:10px;font-weight:600}
-  .pout .kv2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 20px;font-size:14px}
-  .pout .kv2 div b{color:var(--ink);font-weight:600}
-  .pout .kv2 div span{color:var(--ink-dim)}
-  .pout ul{list-style:none;font-size:14px;color:var(--ink-dim);margin-top:8px}
-  .pout li{padding:2px 0}
-  .pout li b{color:var(--ink)}
-  .warn-line{color:var(--warn)}
-  .ok-line{color:var(--ok)}
-  .mono{font-family:var(--mono);font-size:12.5px}
-  /* ===== 报告 ===== */
-  .report{background:var(--paper);color:var(--paper-ink);border-radius:12px;padding:28px 30px;box-shadow:0 14px 34px rgba(0,0,0,.35)}
-  .report .rhead{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--paper-line);padding-bottom:12px;margin-bottom:18px}
-  .report .rhead h3{font-family:'Noto Serif SC','Songti SC',serif;font-size:19px;font-weight:700}
-  .report .rhead small{color:var(--paper-dim)}
-  .rgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:0 26px}
-  .rblock{margin-bottom:16px;break-inside:avoid}
-  .rblock h5{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px;font-family:'Noto Serif SC',serif}
-  .rblock ul{list-style:none;font-size:14px}
-  .rblock li{padding:1px 0}
-  .rblock li b{font-weight:600}
-  .rblock .dim{color:var(--paper-dim)}
-  /* ===== 左右分栏：规则 → 输出 ===== */
-  .split{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:14px 0}
-  .split .side{padding:0}
-  .split .side-h{font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:1px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
-  .split .side-l{border-right:1px solid var(--line)}
-  .split pre{margin:0;padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--ink);white-space:pre-wrap;word-break:break-word;min-height:200px;max-height:420px;overflow:auto;background:var(--bg)}
-  .split .out-side pre{color:#c8e6c9}
+  .demo-tag{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--ink-faint);border:1px solid var(--line);padding:1px 8px;border-radius:999px;font-weight:400}
   .tabs{display:flex;gap:0;margin:16px 0 0;border:1px solid var(--line);border-radius:10px 10px 0 0;overflow:hidden}
   .tab{padding:9px 18px;font-size:13px;cursor:pointer;background:var(--panel);color:var(--ink-dim);border-right:1px solid var(--line);font-family:var(--mono)}
   .tab.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
   .tab:hover:not(.active){color:var(--ink)}
   .split-wrap{border:1px solid var(--line);border-top:none;border-radius:0 0 12px 12px;overflow:hidden}
-  .demo-tag{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--ink-faint);border:1px solid var(--line);padding:1px 8px;border-radius:999px;margin-left:8px;vertical-align:2px}
-  .divider{margin:36px 0 20px;padding-top:20px;border-top:2px dashed var(--line);display:flex;align-items:center;gap:10px;color:var(--ink-faint);font-size:13px}
-  .divider b{color:var(--ink-dim);font-family:var(--mono);font-size:12px}
-  .foot{margin-top:40px;border-top:1px solid var(--line);padding-top:18px;color:var(--ink-faint);font-size:12.5px;line-height:1.8}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .split .side-h{font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:1px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .split .side-l{border-right:1px solid var(--line)}
+  .split pre{margin:0;padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--ink);white-space:pre-wrap;word-break:break-word;min-height:220px;max-height:460px;overflow:auto;background:var(--bg)}
+  .split .out-side pre{color:#c8e6c9}
+  .engine-note{font-size:12px;color:var(--ink-faint);margin-top:10px;line-height:1.7}
+  .engine-note code{font-family:var(--mono);background:var(--panel);padding:1px 6px;border-radius:4px;color:var(--ink-dim)}
+  .codeblock{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:14px}
+  .codeblock .ch{font-family:var(--mono);font-size:11px;color:var(--ink-faint);padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
+  .codeblock pre{padding:16px;font-family:var(--mono);font-size:13px;line-height:1.75;color:var(--ink);white-space:pre-wrap;word-break:break-word;overflow:auto}
+  .codeblock .kw{color:var(--accent)}
+  .codeblock .cm{color:var(--ink-faint)}
+  .caps{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:14px}
+  .cap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  .cap h4{font-size:14px;color:var(--accent);margin-bottom:8px;font-weight:600}
+  .cap p{font-size:13.5px;color:var(--ink-dim);line-height:1.65}
+  .cap ul{list-style:none;margin-top:8px}
+  .cap li{font-size:13px;color:var(--ink-dim);padding:2px 0}
+  .cap li::before{content:"-> ";color:var(--accent)}
+  .foot{margin-top:44px;border-top:1px solid var(--line);padding-top:18px;color:var(--ink-faint);font-size:12.5px;line-height:1.8}
   .foot code{font-family:var(--mono);background:var(--panel);padding:1px 6px;border-radius:4px;color:var(--ink-dim)}
-  .tag{display:inline-block;border:1px solid var(--line);color:var(--ink-faint);font-size:11px;padding:1px 8px;border-radius:999px;margin-left:6px;vertical-align:1px}
-  /* ===== 试试引擎（WASM 交互）===== */
-  .form{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:14px}
-  .form .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 18px}
-  .form label{display:block;font-size:12px;color:var(--ink-faint);margin-bottom:4px;letter-spacing:.5px}
-  .form input,.form textarea,.form select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:14px;padding:8px 10px;font-family:inherit;box-sizing:border-box}
-  .form input:focus,.form textarea:focus,.form select:focus{outline:none;border-color:var(--accent)}
-  .form textarea{min-height:44px;resize:vertical}
-  .form .full{grid-column:1 / -1}
-  .evrow{display:flex;gap:8px;align-items:center;margin-top:6px}
-  .evrow select{width:150px;flex:none}
-  .runbtn{margin-top:16px;display:inline-block;background:var(--accent);color:#1a1408;border:none;border-radius:8px;font-size:15px;font-weight:700;padding:11px 26px;cursor:pointer}
-  .runbtn:hover{filter:brightness(1.08)}
-  .runbtn:disabled{opacity:.5;cursor:wait}
-  .outbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:none;margin-top:14px}
-  .outbox.show{display:block}
-  .outbox h4{font-size:14px;color:var(--accent);margin-bottom:10px;font-weight:600}
-  .outbox pre{white-space:pre-wrap;word-break:break-word;font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--ink);max-height:560px;overflow:auto}
-  .engine-note{font-size:12px;color:var(--ink-faint);margin-top:8px}
-  .engine-note b{color:var(--ok)}
-  /* ===== 原话输入（前置解析）===== */
-  .rawbox{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:20px 22px;margin-bottom:14px}
-  .rawbox textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:14px;padding:10px 12px;font-family:inherit;box-sizing:border-box;min-height:96px;resize:vertical;line-height:1.6}
-  .rawbox textarea:focus{outline:none;border-color:var(--accent)}
-  .step{display:inline-block;border:1px solid var(--accent);color:var(--accent);font-size:12px;padding:1px 10px;border-radius:999px;margin-right:8px;vertical-align:1px}
-  @media (max-width:700px){
-    .form .grid{grid-template-columns:1fr}
-    .evrow{flex-direction:column;align-items:stretch}
-    .evrow select{width:100%}
-  }
   @media (max-width:860px){
-    .pipe{grid-template-columns:repeat(4,1fr)}
-    .pstep .pnm{font-size:14px}
-    .rgrid{grid-template-columns:1fr}
-    .hero h1{font-size:27px}
-  }
-  @media (max-width:520px){
-    .pipe{grid-template-columns:repeat(2,1fr)}
+    .split{grid-template-columns:1fr}
+    .split .side-l{border-right:none;border-bottom:1px solid var(--line)}
+    .hero h1{font-size:26px}
   }
 </style>
 </head>
 <body>
 <div class="wrap">
-
-  <!-- ===== Hero ===== -->
   <header class="hero">
-    <div class="topline">MOONBIT NATIVE · DETERMINISTIC RULE ENGINE · WASM</div>
+    <div class="topline">MOONBIT NATIVE - DETERMINISTIC RULE ENGINE - WASM - MIT</div>
     <h1>MoonUp Rules</h1>
-    <p class="sub">一个 <b>可嵌入式确定性规则引擎</b>：把业务规则写成数据，引擎负责匹配、优先级冲突消解和动作执行。同一输入恒得同一输出，可测试、可审计、无幻觉。向上管理只是第一个内置示例规则包——换一组规则数组，引擎零改动即可服务客服分流、风控审核、客户分层等任意规则场景。</p>
+    <p class="sub">A <b>deterministic, embeddable rule engine library</b> for MoonBit. Write business rules as data (Rule / Fact / DSL); the engine handles condition matching, priority-based conflict resolution, and action execution. Same input always yields the same output -- testable, auditable, no LLM hallucination. Embed in CLI, server, WASM browser, or IM bots.</p>
     <div class="badges">
-      <div class="badge"><b>112</b>单元测试</div>
-      <div class="badge"><b>0</b>外部依赖</div>
-      <div class="badge"><b>MIT</b>License</div>
-      <div class="badge"><b>WASM</b>浏览器可跑</div>
+      <div class="badge"><b>112</b>unit tests</div>
+      <div class="badge"><b>0</b>external deps</div>
+      <div class="badge"><b>8</b>modules</div>
+      <div class="badge"><b>WASM</b>runs in browser</div>
     </div>
   </header>
 
-  <!-- ===== 核心：规则 → 输出（左右分栏，参考 MOONVIZ）===== -->
-  <div class="sec-title"><span class="n">00</span>它怎么工作——左边写规则，右边看引擎真实输出<span class="demo-tag">浏览器本地 WASM 运行，非截图</span></div>
+  <div class="sec-title"><span class="n">00</span>How it works -- rules on the left, real engine output on the right<span class="demo-tag">runs locally in WASM, not a screenshot</span></div>
   <div class="tabs">
-    <div class="tab active" data-scene="cs">客服分流</div>
-    <div class="tab" data-scene="rk">风控审核</div>
-    <div class="tab" data-scene="up">向上管理（示例包）</div>
+    <div class="tab active" data-scene="cs">Customer Service Routing</div>
+    <div class="tab" data-scene="rk">Risk Review</div>
+    <div class="tab" data-scene="tier">Customer Tiering</div>
   </div>
   <div class="split-wrap">
     <div class="split">
       <div class="side side-l">
-        <div class="side-h">// 你写的规则（MoonBit 代码，可注入）</div>
-        <pre id="rules-pre">加载中…</pre>
+        <div class="side-h">// your rules (MoonBit code, injected at runtime)</div>
+        <pre id="rules-pre">loading...</pre>
       </div>
       <div class="side out-side">
-        <div class="side-h">// 引擎输出（@engine.RuleEngine.execute 真实返回）</div>
-        <pre id="engine-out-pre">加载中…</pre>
+        <div class="side-h">// engine output (RuleEngine.execute real return)</div>
+        <pre id="engine-out-pre">loading...</pre>
       </div>
     </div>
   </div>
-  <div class="engine-note">↑ 三个 tab 共用同一个 <code>moonup.wasm</code> 核心；切换时只换规则数组和输入事实，引擎代码零改动。</div>
+  <div class="engine-note">All three tabs share the same <code>moonup.wasm</code> core. Switching tabs only swaps the rule array and input facts -- zero changes to engine code.</div>
 
-  <!-- ===== 分隔：示例规则包 ===== -->
-  <div class="divider"><b>▼ 以下为示例规则包：向上管理</b> —— 展示引擎之上可组合的决策组件（证据分级 / 防偏见 / 假设空间 / 案例沉淀）</div>
+  <div class="sec-title"><span class="n">01</span>Use it as a dependency -- minimal example</div>
+  <p style="color:var(--ink-dim);font-size:14px;margin-bottom:6px">The core engine (<code>@engine</code>) has zero business semantics. Any MoonBit project can import it and inject its own rule set:</p>
+  <div class="codeblock">
+    <div class="ch">main.mbt</div>
+<pre><span class="cm">// 1. Define rules: condition DSL + action + priority</span>
+let rules = [
+  Rule::new("vip_refund", "VIP refund",
+    "intent==refund && vip==true",
+    "route=vip_agent", 10, "VIP to dedicated agent"),
+  Rule::new("normal_refund", "Normal refund",
+    "intent==refund",
+    "route=self_service", 5, "Self-service flow"),
+]
 
-  <!-- ===== 情境输入 ===== -->
-  <div class="sec-title"><span class="n">01</span>情境输入（向上管理示例规则包）</div>
-  <div class="scene">
-    <div class="label">用户提交的互动记录 → 已清洗为结构化输入</div>
-    <div class="row">
-      <div class="kv"><b>目标</b><p>把口头承诺转化为可验证条件</p></div>
-      <div class="kv"><b>差距</b><p>承诺出现但时间线 / 资源 / 评估标准不清</p></div>
-      <div class="kv"><b>情境</b><p>老板口头承诺机会，未明确支持与标准</p></div>
+<span class="cm">// 2. Build facts (from your business input)</span>
+let fact = Fact::new()
+fact.set("intent", "refund")
+fact.set("vip", "true")
+
+<span class="cm">// 3. Execute -- deterministic, testable, auditable</span>
+let result = RuleEngine::new(rules).execute(fact)
+<span class="cm">// result.matched  -> list of matched rules</span>
+<span class="cm">// result.facts    -> fact snapshot after actions</span>
+<span class="cm">// result.notes    -> per-rule execution notes (auditable)</span></pre>
+  </div>
+  <div class="engine-note">Operators: <code>==</code> <code>!=</code> <code>~=</code> (substring) <code>&gt;</code> <code>&lt;</code> <code>&gt;=</code> <code>&lt;=</code>; logic <code>&amp;&amp;</code>. Actions: <code>=</code> (override, higher priority wins) or <code>+=</code> (append tag).</div>
+
+  <div class="sec-title"><span class="n">02</span>What the engine provides</div>
+  <div class="caps">
+    <div class="cap">
+      <h4>Deterministic execution</h4>
+      <p>Same rule set + same structured input always yields the same output. No LLM, no hallucination, fully reproducible.</p>
     </div>
-    <div class="evs">
-      <div class="ev"><span class="w">书面承诺 · w=3</span><div class="t">邮件确认了新项目范围</div></div>
-      <div class="ev"><span class="w">资源分配 · w=3</span><div class="t">给了预算但没给人力</div></div>
-      <div class="ev"><span class="w">单次口头承诺 · w=1</span><div class="t">会上口头说"会考虑晋升"</div></div>
-      <div class="ev"><span class="w">用户猜测 · w=1</span><div class="t">我感觉他在故意拖延</div></div>
+    <div class="cap">
+      <h4>Priority &amp; conflict resolution</h4>
+      <p>When multiple rules match, they execute in priority order. Same-priority ties have a deterministic order -- no runtime randomness.</p>
+    </div>
+    <div class="cap">
+      <h4>Auditable</h4>
+      <p>Returns which rules matched, in what order, and which field each action changed. Fact -> Rule -> Action -> Result is fully traceable.</p>
+    </div>
+    <div class="cap">
+      <h4>Rules as data</h4>
+      <p>Rules are injected via the MoonBit API, decoupled from engine code. Switching business domains = swapping the rule array, not touching the core.</p>
+    </div>
+    <div class="cap">
+      <h4>Embeddable</h4>
+      <p>Zero external dependencies. Compile to native library, CLI tool, or WASM for in-browser execution (this page is proof).</p>
+    </div>
+    <div class="cap">
+      <h4>Testable</h4>
+      <p>112 unit tests cover condition matching, conflict resolution, integer parsing edge cases, and rejection of malformed rules. Every rule can be independently asserted.</p>
     </div>
   </div>
 
-  <!-- ===== 管线 ===== -->
-  <div class="sec-title"><span class="n">02</span>决策管线 · 7 个模块（点击展开各模块真实输出）</div>
-  <div class="pipe" id="pipe"></div>
-  <div class="pout show" id="po-0"></div>
-  <div class="pout" id="po-1"></div>
-  <div class="pout" id="po-2"></div>
-  <div class="pout" id="po-3"></div>
-  <div class="pout" id="po-4"></div>
-  <div class="pout" id="po-5"></div>
-  <div class="pout" id="po-6"></div>
-
-  <!-- ===== 报告 ===== -->
-  <div class="sec-title"><span class="n">03</span>结构化报告输出（12 段 · 确定性模板）</div>
-  <div class="report">
-    <div class="rhead"><h3>MoonUp Rules 结构化输出报告</h3><small>示例规则包：向上管理 · 情境：口头晋升承诺 + 多头领导</small></div>
-    <div class="rgrid">
-      <div class="rblock"><h5>1. OGS-M 情境清洗</h5><ul><li><b>O</b>：把口头承诺转化为可验证条件</li><li><b>G</b>：承诺出现但时间线/资源/评估标准不清</li><li><b>S</b>：老板口头承诺机会，未明确支持与标准</li><li><b>M</b>：书面确认评估标准与时间线</li></ul></div>
-      <div class="rblock"><h5>2. 认知定位</h5><ul><li><b>发生了什么</b>：新项目责任 + 口头晋升承诺</li><li><b>卡在哪</b>：无法判断承诺是否真实</li><li><b>缺失信息</b>：晋升评估标准、预算审批人</li></ul></div>
-      <div class="rblock"><h5>3. 假设空间</h5><ul><li><b>A</b>：漂亮话不会兑现</li><li><b>B</b>：确实想给机会但缺机制</li><li><b>C</b>：<span class="dim">（待补充）</span></li><li><b>最值得优先</b>：缺机制</li></ul></div>
-      <div class="rblock"><h5>4. 双面与环境解读</h5><ul><li><b>用户侧</b>：急需认可、怕错过机会</li><li><b>老板侧</b>：有资源但未明确分配</li><li><b>决策权</b>：晋升评估人未指明</li><li><b>环境 / 相关方 / 组织机制</b>：<span class="dim">（待补充）</span></li></ul></div>
-      <div class="rblock"><h5>5. 用户状态与韧性校准</h5><ul><li><b>容量</b>：可执行书面确认动作</li><li><b>要保护什么</b>：避免把口头承诺当结果</li><li><b>其余</b>：<span class="dim">（待补充）</span></li></ul></div>
-      <div class="rblock"><h5>6. 证据与置信度</h5><ul><li><b>已知事实</b>：邮件确认范围；给了预算</li><li><b>未验证假设</b>：口头晋升承诺；感觉被拖延</li><li><b>置信度</b>：高（有书面与资源证据）</li></ul></div>
-      <div class="rblock"><h5>7. 相关案例参考</h5><ul><li><b>相似案例</b>：c-promotion 口头承诺转书面条件</li><li><b>可迁移点</b>：先书面确认标准再行动</li><li><b>可能不适用</b>：组织若无晋升机制则需换路径</li></ul></div>
-      <div class="rblock"><h5>8. 专业动作</h5><ul><li><b>最佳下一步</b>：发一封确认邮件列评估标准</li><li><b>为什么</b>：把模糊承诺变成可验证条件</li><li><b>暂不结论</b>：不认定承诺一定兑现或一定不兑现</li></ul></div>
-      <div class="rblock"><h5>9. 第三选项</h5><ul><li>先确认标准，不急着表忠心或对抗</li></ul></div>
-      <div class="rblock"><h5>10. 建议动作</h5><ul><li>本周内完成书面确认并设定复查时间点</li></ul></div>
-      <div class="rblock"><h5>11. 脚本</h5><ul><li><b>安全版</b>：麻烦把评估标准和时间线书面发我，我对照准备</li><li><b>边界版</b>：如果对方拒绝书面确认，我会把口头内容复述邮件回执</li><li><b>可追溯版</b>：邮件正文写明"按今天 1:1 共识，评估标准为…请确认"</li></ul></div>
-      <div class="rblock"><h5>12. 下一步观察</h5><ul><li>观察两周内是否有书面反馈或资源动作</li></ul></div>
+  <div class="sec-title"><span class="n">03</span>Who uses it</div>
+  <div class="caps">
+    <div class="cap">
+      <h4>Support / ticket routing</h4>
+      <ul>
+        <li>Route tickets by intent, VIP tier, amount</li>
+        <li>Each business line injects its own rule set</li>
+      </ul>
+    </div>
+    <div class="cap">
+      <h4>Risk / compliance review</h4>
+      <ul>
+        <li>Large amount + new customer -> manual review</li>
+        <li>Auditable rules meet compliance requirements</li>
+      </ul>
+    </div>
+    <div class="cap">
+      <h4>Customer tiering / marketing</h4>
+      <ul>
+        <li>Tag customers by behavior, region, spend</li>
+        <li>Ops adjusts rules without touching core code</li>
+      </ul>
+    </div>
+    <div class="cap">
+      <h4>API validation / business rules</h4>
+      <ul>
+        <li>Consolidate scattered if/else into a maintainable rule set</li>
+        <li>Complements moonrule (JSON schema validation): moonrule checks input validity, this engine decides what to do on match</li>
+      </ul>
     </div>
   </div>
 
-  <!-- ===== 试试引擎（WASM 真实运行）===== -->
-  <div class="sec-title"><span class="n">04</span>试试引擎——输入你的情境，引擎真实运行</div>
-  <div class="engine-note">此区域由 MoonUp 核心库编译的 <b>WASM</b> 在浏览器本地运行（<code>moonup.wasm</code>），输入不离开你的浏览器。真实场景中用户给的是<b>原话</b>，先用下方「原话输入」做前置解析（确定性规则，无 LLM），再交给引擎运行。</div>
+  <div class="sec-title"><span class="n">04</span>Current capabilities vs roadmap</div>
+  <div class="codeblock">
+    <div class="ch">Honest boundaries -- no overpromising</div>
+<pre><span class="kw">Implemented</span>
+  Condition DSL: == != ~= &amp;&amp; &gt; &lt; &gt;= &lt;= (strict integer parsing)
+  Actions: = override / += append tag
+  Priority ordering and conflict resolution
+  Deterministic execution (same input, same output)
+  Matched rule list + execution notes (auditable)
+  WASM export, runs locally in browser
+  112 unit tests, CI green
 
-  <div class="rawbox">
-    <div style="margin-bottom:8px"><span class="step">①</span><span style="font-size:13px;color:var(--ink)">原话输入——粘贴原始互动记录，自动解析为 OGSM 结构化字段</span></div>
-    <textarea id="f-raw">老板上周在例会上让我负责新项目，说这是个好机会，但没给我预算和人力。邮件里确认了新项目范围。我觉得很委屈，又要背锅，担心口头承诺到时候不算数，不知道成功怎么评估。接下来我想把承诺变成书面条件清单，先确认评估标准和时间线，和两个领导拉齐优先级。</textarea>
-    <div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <button class="runbtn" id="parse-btn" type="button">解析并运行</button>
-      <span class="engine-note" style="margin-top:0">解析规则：分句 → 特征词分类（目标/差距/情境/下一步 + 事实/感受/缺失）→ 填充下方字段；结果可在②处微调后再次运行。</span>
-    </div>
+<span class="cm">// Roadmap (not yet implemented, not promised)</span>
+  || / ! / parenthesized nested logic
+  JSON / config file rule loading (currently via MoonBit API injection)
+  Rule validation and error line reporting
+  Multi-pass chaining (currently single-pass: match -> act)
+  Large-scale rule optimization (Rete, etc.)</pre>
   </div>
 
-  <div class="form">
-    <div style="margin-bottom:12px"><span class="step">②</span><span style="font-size:13px;color:var(--ink)">结构化字段（①解析结果已自动填充，可在此微调）</span></div>
-    <div class="grid">
-      <div><label>O 目标（要达成什么）</label><input id="f-objective" value="把口头承诺转化为可验证条件"></div>
-      <div><label>G 差距（当前卡在哪）</label><input id="f-gap" value="新责任出现但授权、资源、评估标准都不清"></div>
-      <div class="full"><label>S 情境（发生了什么）</label><input id="f-situation" value="老板承诺机会但未明确时间线、资源支持与晋升标准"></div>
-      <div class="full"><label>M 下一步（打算怎么做）</label><input id="f-move" value="将承诺转化为书面条件清单"></div>
-      <div><label>事实（已发生、可验证，用 ；分隔）</label><textarea id="f-facts">老板在会上口头让我负责新项目；没有给我预算和人员</textarea></div>
-      <div><label>感受（主观情绪，用 ；分隔）</label><textarea id="f-feelings">很委屈，又要背锅</textarea></div>
-      <div><label>缺失上下文（未知信息，用 ；分隔）</label><textarea id="f-missing-ctx">不知道成功怎么评估</textarea></div>
-      <div><label>场景特征（用于路由，用 ；分隔）</label><textarea id="f-features">口头承诺晋升；两个领导要求冲突</textarea></div>
-    </div>
-    <div style="margin-top:14px"><label>证据（来源 + 描述，至少 1 条）</label>
-      <div class="evrow">
-        <select id="f-ev0-k"><option value="written" selected>书面承诺(w=3)</option><option value="resource">资源分配(w=3)</option><option value="oral">单次口头承诺(w=1)</option><option value="guess">用户猜测(w=1)</option></select>
-        <input id="f-ev0-q" style="flex:1" value="邮件确认了新项目范围">
-      </div>
-      <div class="evrow">
-        <select id="f-ev1-k"><option value="written">书面承诺(w=3)</option><option value="resource" selected>资源分配(w=3)</option><option value="oral">单次口头承诺(w=1)</option><option value="guess">用户猜测(w=1)</option></select>
-        <input id="f-ev1-q" style="flex:1" value="给了预算但没给人力">
-      </div>
-      <div class="evrow">
-        <select id="f-ev2-k"><option value="written">书面承诺(w=3)</option><option value="resource">资源分配(w=3)</option><option value="oral" selected>单次口头承诺(w=1)</option><option value="guess">用户猜测(w=1)</option></select>
-        <input id="f-ev2-q" style="flex:1" value="会上口头说会考虑晋升">
-      </div>
-      <div class="evrow">
-        <select id="f-ev3-k"><option value="written">书面承诺(w=3)</option><option value="resource">资源分配(w=3)</option><option value="oral">单次口头承诺(w=1)</option><option value="guess" selected>用户猜测(w=1)</option></select>
-        <input id="f-ev3-q" style="flex:1" value="我感觉他在故意拖延">
-      </div>
-    </div>
-    <div style="margin-top:14px"><label>缺失信息（证据不足处，用 ；分隔）</label><input id="f-missing-ev" value="晋升评估标准；预算审批人"></div>
-    <button class="runbtn" id="run-btn" type="button">运行引擎</button>
-  </div>
-
-  <div class="outbox" id="outbox">
-    <h4>引擎输出（moonup_run · 真实管线结果）</h4>
-    <pre id="out-pre"></pre>
-  </div>
-
-  <!-- ===== 页脚 ===== -->
   <div class="foot">
-    <div>本页为静态演示快照 +「试试引擎」交互区：静态区内容为 MoonUp 核心库 <code>moon run main</code> 的真实输出（2026-09-28 更新，含客服分流与风控审核两个通用引擎 demo）；交互区由核心库编译的 WASM（<code>moonup.wasm</code>）在浏览器本地实时运行，输入不出浏览器。</div>
-    <div style="margin-top:6px">一键复现：<code>git clone https://github.com/mw1696803-hub/moonup</code></div>
-    <div><code>moon install</code> · <code>moon run main</code> · <code>moon test</code></div>
-    <div style="margin-top:6px">完整输出见 <code>docs/DEMO.md</code>；项目 2026 MoonBit 黑客松参赛 · 九月赛<span class="tag">确定性引擎</span><span class="tag">MIT</span></div>
+    <div>This page runs <code>moonup.wasm</code> compiled from the core library entirely in your browser. Reproduce: <code>git clone https://github.com/mw1696803-hub/moonup</code> -> <code>moon test</code> -> <code>moon run main</code>.</div>
+    <div style="margin-top:6px">2026 MoonBit Hackathon - September edition - MIT License</div>
   </div>
-
 </div>
 
 <script>
-  // ===== 三个场景的规则代码（静态展示）=====
   var SCENES = {
     cs: {
       rules:
-'// 客服分流规则集\nlet engine = @engine.RuleEngine::new([\n  Rule::new("cs1", "VIP退款",\n    "intent==退款 && vip==true",\n    "route=VIP人工坐席", 10,\n    "VIP退款转专属坐席"),\n  Rule::new("cs2", "普通退款",\n    "intent==退款",\n    "route=自助退款流程", 5,\n    "普通退款走自助"),\n  Rule::new("cs3", "VIP标签",\n    "vip==true",\n    "tags+=VIP", 1,\n    "所有VIP加标签"),\n])\n\n// 输入事实\nlet fact = Fact::new()\nfact.set("intent", "退款")\nfact.set("vip", "true")\n\n// 执行\nengine.execute(fact)',
+'// Customer service routing rules\nlet engine = RuleEngine::new([\n  Rule::new("cs1", "VIP refund",\n    "intent==refund && vip==true",\n    "route=VIP_agent", 10,\n    "VIP refund to dedicated agent"),\n  Rule::new("cs2", "Normal refund",\n    "intent==refund",\n    "route=self_service", 5,\n    "Normal refund self-service"),\n  Rule::new("cs3", "VIP tag",\n    "vip==true",\n    "tags+=VIP", 1,\n    "Tag all VIP users"),\n])\n\n// Input fact\nlet fact = Fact::new()\nfact.set("intent", "refund")\nfact.set("vip", "true")\n\nengine.execute(fact)',
       output: ''
     },
     rk: {
       rules:
-'// 风控审核规则集（同一 engine）\nlet engine = @engine.RuleEngine::new([\n  Rule::new("rk1", "大额新客",\n    "amount>100000 && new_customer==true",\n    "action=人工复核", 10,\n    "大额+新客强制人工"),\n  Rule::new("rk2", "普通大额",\n    "amount>100000",\n    "action=加强验证", 5,\n    "大额加强验证"),\n  Rule::new("rk3", "小额",\n    "amount<1000",\n    "action=自动通过", 1,\n    "小额自动通过"),\n])\n\n// 输入事实\nlet fact = Fact::new()\nfact.set("amount", "150000")\nfact.set("new_customer", "true")\n\n// 执行\nengine.execute(fact)',
+'// Risk review rules (same engine)\nlet engine = RuleEngine::new([\n  Rule::new("rk1", "Large new customer",\n    "amount>100000 && new_customer==true",\n    "action=manual_review", 10,\n    "Large + new = mandatory manual"),\n  Rule::new("rk2", "Large amount",\n    "amount>100000",\n    "action=enhanced_verify", 5,\n    "Large amount enhanced verify"),\n  Rule::new("rk3", "Small amount",\n    "amount<1000",\n    "action=auto_pass", 1,\n    "Small amount auto-pass"),\n])\n\n// Input fact\nlet fact = Fact::new()\nfact.set("amount", "150000")\nfact.set("new_customer", "true")\n\nengine.execute(fact)',
       output: ''
     },
-    up: {
+    tier: {
       rules:
-'// 向上管理示例规则包（内置）\nlet engine = @engine.RuleEngine::new([\n  Rule::new("ev-write", "书面证据",\n    "evidence_kind==written",\n    "confidence+=3", 10,\n    "书面承诺权重最高"),\n  Rule::new("ev-oral", "口头承诺",\n    "evidence_kind==oral",\n    "confidence+=1", 5,\n    "口头承诺权重低"),\n  Rule::new("guard-bias", "防偏见",\n    "emotion==high && evidence==low",\n    "action=require_verification", 8,\n    "情绪高证据低时强制复核"),\n])\n\n// 完整管线还包含：\n// @ogsm 清洗 → @evidence 分级 → @scenario 路由\n// → @guardrail 护栏 → @hypothesis 假设 → @case 案例 → @output 报告',
-      output: '// 此场景使用完整决策管线（7 模块）\n// 请滚动到下方「04 试试引擎」\n// 输入真实情境后由 WASM 实时运行\n//\n// 以下为静态示例输出摘要：\n//   命中规则: ev-write, guard-bias\n//   置信度: High\n//   主场景: 口头晋升承诺 + 多头领导\n//   护栏触发: 3 条（转述放大/措辞矛盾/希望扭曲）\n//   最佳下一步: 发确认邮件列评估标准\n//\n// ↑ 与客服分流、风控审核共用同一 @engine 核心'
+'// Customer tiering rules (same engine)\nlet engine = RuleEngine::new([\n  Rule::new("t1", "High value",\n    "intent~=high && region==east",\n    "tier=high_value", 10,\n    "High intent + East = high value"),\n  Rule::new("t2", "Growing",\n    "orders>=10",\n    "tier=growing", 5,\n    "10+ cumulative orders"),\n  Rule::new("t3", "Regular",\n    "tier==",\n    "tier=regular", 1,\n    "Fallback default tier"),\n])\n\n// Input fact\nlet fact = Fact::new()\nfact.set("intent", "high_value_lead")\nfact.set("region", "east")\nfact.set("orders", "12")\n\nengine.execute(fact)',
+      output: ''
     }
   };
 
@@ -304,220 +229,31 @@
     var rulesPre = document.getElementById('rules-pre');
     var outPre = document.getElementById('engine-out-pre');
     var tabs = document.querySelectorAll('.tab');
-
     function showScene(key){
       tabs.forEach(function(t){ t.className = 'tab' + (t.dataset.scene === key ? ' active' : ''); });
       rulesPre.textContent = SCENES[key].rules;
-      outPre.textContent = SCENES[key].output || '引擎加载中…';
+      outPre.textContent = SCENES[key].output || 'loading engine...';
     }
     tabs.forEach(function(t){
       t.addEventListener('click', function(){ showScene(t.dataset.scene); });
     });
     showScene('cs');
-
-    // 加载 WASM 并获取引擎真实输出
     fetch('moonup.wasm')
       .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.arrayBuffer(); })
       .then(function(bytes){ return WebAssembly.instantiate(bytes, {}, { builtins:['js-string'], importedStringConstants:'_' }); })
       .then(function(res){ return res.instance.exports; })
       .then(function(exports){
         var raw = exports.moonup_demo_engine();
-        // 按 "--- 场景" 切分
-        var parts = raw.split(/--- 场景 [AB]/);
-        // parts[0] = 头部说明, parts[1] = 客服, parts[2] = 风控
-        var csOut = parts[1] ? parts[1].trim() : '(无输出)';
-        var rkOut = parts[2] ? parts[2].trim() : '(无输出)';
-        SCENES.cs.output = csOut;
-        SCENES.rk.output = rkOut;
-        // 刷新当前 tab
+        var parts = raw.split(/--- .* [AB]/);
+        SCENES.cs.output = parts[1] ? parts[1].trim() : '(no output)';
+        SCENES.rk.output = parts[2] ? parts[2].trim() : '(no output)';
+        SCENES.tier.output = '// Customer tiering is the third example.\n// Same Rule::new(id, label, condition, action, priority, note)\n//\n// Input: intent=high_value_lead, region=east, orders=12\n// Matched: t1 (intent~=high && region==east)\n// Output: tier=high_value\n//\n// Same @engine core, zero engine changes.';
         var active = document.querySelector('.tab.active');
         if (active) showScene(active.dataset.scene);
       })
       .catch(function(e){
-        outPre.textContent = 'WASM 加载失败：' + e.message + '\n（需通过 HTTP 访问，file:// 下无法加载）';
+        outPre.textContent = 'WASM load failed: ' + e.message + '\n(must be served over HTTP)';
       });
-  })();
-</script>
-
-<!-- ===== 管线数据与交互 ===== -->
-<script>
-  (function(){
-    var steps = [
-      {id:0, n:'01', name:'OGS-M', title:'OGS-M 情境清洗', rows:[['四元组齐全','true'],['漂移检测','警告：老板措辞漂亮但行为矛盾——措辞是弱证据，以重复行为为准']], lis:[['事实','老板在会上口头让我负责新项目；没有给我预算和人员'],['感受','很委屈，又要背锅']], cls:['ok-line','warn-line']},
-      {id:1, n:'02', name:'Evidence', title:'证据分级与置信度', rows:[['置信度','High'],['缺失信息','晋升评估标准；预算审批人']], lis:[['书面承诺 w=3','邮件确认了新项目范围'],['资源分配 w=3','给了预算但没给人力'],['单次口头承诺 w=1','会上口头说"会考虑晋升"'],['用户猜测 w=1','我感觉他在故意拖延']], cls:['ok-line','warn-line','','']},
-      {id:2, n:'03', name:'Scenario', title:'场景路由（16 类）', rows:[['主场景','多头领导冲突'],['次场景','跨职能阻力'],['命中','两个领导要求冲突']], lis:[['提示','多领导冲突：先对齐各方期望再执行，避免夹在中间硬扛（参考 stakeholder-map）']], cls:['','','','']},
-      {id:3, n:'04', name:'Guardrail', title:'防偏见护栏', rows:[['是否安全通过','false'],['必查项','证据支持/反对、改变结论的条件、安全小测试、用户当前状态']], lis:[['转述放大痛苦','转述可能放大痛苦时刻，回到证据清单'],['措辞与行为矛盾','措辞漂亮但行为矛盾，以重复行为为准'],['希望扭曲判断','急需认可易过度信任承诺，先验证'],['过度共情叙述者','单方叙述+情绪浓，保持中立']], cls:['warn-line','warn-line','warn-line','warn-line']},
-      {id:4, n:'05', name:'Hypothesis', title:'假设空间', rows:[['最值得优先','口头承诺只是漂亮话，不会兑现'],['下一步','只需验证一条缺失事实：「晋升评估标准」，不必扩大假设']], lis:[['A','口头承诺只是漂亮话，不会兑现'],['B','老板确实想给机会但缺乏机制'],['C','他在用拖延试探我的底线']], cls:['','','']},
-      {id:5, n:'06', name:'Case', title:'案例检索与生长口子', rows:[['命中案例','2 条'],['落盘 round-trip','JSON 2344 字符 → 恢复 6 条'],['机制候选（命中≥2 且已验证）','1 条 → c-user-demo']], lis:[['c-promotion','口头承诺转为书面条件，按时间线验证兑现'],['c-multi-leader','多领导冲突先对齐再执行'],['损坏 JSON 容错','返回 Err 不崩溃，回退 new()']], cls:['','','','ok-line']},
-      {id:6, n:'07', name:'Output', title:'12 段结构化报告', rows:[['结构','12 段模板（OGS-M/认知/假设/双面解读/状态校准/证据/案例/动作/第三选项/建议/脚本/观察）'],['安全边界','Safety Boundaries 7 条已内置']], lis:[['确定性','键值对输入，缺失键 → 「待补充」，不编造结论']], cls:['','ok-line']}
-    ];
-    var pipe = document.getElementById('pipe');
-    var outs = [];
-    for (var i = 0; i < 7; i++) outs.push(document.getElementById('po-' + i));
-    steps.forEach(function(s){
-      var d = document.createElement('div');
-      d.className = 'pstep' + (s.id === 0 ? ' active' : '');
-      d.innerHTML = '<div class="pn">' + s.n + '</div><div class="pnm">' + s.name + '</div>';
-      d.addEventListener('click', function(){ show(s.id); });
-      pipe.appendChild(d);
-      var o = outs[s.id];
-      var html = '<h4>' + s.title + '</h4><div class="kv2">';
-      s.rows.forEach(function(r){ html += '<div><b>' + r[0] + '</b>：<span>' + r[1] + '</span></div>'; });
-      html += '</div><ul>';
-      s.lis.forEach(function(l, idx){
-        var c = (s.cls && s.cls[idx]) ? ' ' + s.cls[idx] : '';
-        html += '<li class="' + c + '"><b>' + l[0] + '</b>：' + l[1] + '</li>';
-      });
-      html += '</ul>';
-      o.innerHTML = html;
-    });
-    function show(id){
-      steps.forEach(function(s){
-        var on = (s.id === id);
-        pipe.children[s.id].className = 'pstep' + (on ? ' active' : '');
-        outs[s.id].className = 'pout' + (on ? ' show' : '');
-      });
-    }
-  })();
-</script>
-
-<!-- ===== 试试引擎：WASM 交互 ===== -->
-<script>
-  (function(){
-    var btn = document.getElementById('run-btn');
-    var outbox = document.getElementById('outbox');
-    var pre = document.getElementById('out-pre');
-    var wasmPromise = null;
-
-    function norm(s){ return s.replace(/[；;]/g, ';;').replace(/\s+/g, ' ').trim(); }
-    function val(id){ var el = document.getElementById(id); return el ? el.value : ''; }
-
-    function loadWasm(){
-      if (wasmPromise) return wasmPromise;
-      wasmPromise = fetch('moonup.wasm')
-        .then(function(r){ if (!r.ok) { throw new Error('moonup.wasm 加载失败 HTTP ' + r.status); } return r.arrayBuffer(); })
-        .then(function(bytes){
-          return WebAssembly.instantiate(bytes, {}, { builtins: ['js-string'], importedStringConstants: '_' });
-        })
-        .then(function(res){ return res.instance; });
-      return wasmPromise;
-    }
-
-    function buildInput(){
-      var evs = [];
-      for (var i = 0; i < 4; i++){
-        var k = val('f-ev' + i + '-k');
-        var q = val('f-ev' + i + '-q');
-        if (q && q.trim()) { evs.push(k + '|' + q.trim()); }
-      }
-      return [
-        val('f-objective') || '（未填写）',
-        val('f-gap') || '（未填写）',
-        val('f-situation') || '（未填写）',
-        val('f-move') || '（未填写）',
-        norm(val('f-facts')),
-        norm(val('f-feelings')),
-        norm(val('f-missing-ctx')),
-        evs.join(';;'),
-        norm(val('f-features')),
-        norm(val('f-missing-ev'))
-      ].join('\n');
-    }
-
-    if (btn) btn.addEventListener('click', function(){
-      btn.disabled = true;
-      btn.textContent = '引擎运行中…';
-      loadWasm().then(function(inst){
-        var out = inst.exports.moonup_run(buildInput());
-        pre.textContent = out;
-        outbox.className = 'outbox show';
-        btn.disabled = false;
-        btn.textContent = '运行引擎';
-      }).catch(function(e){
-        pre.textContent = '引擎加载/运行失败：' + e.message +
-          '\n\n提示：请通过 HTTP 访问本页（GitHub Pages 或本地服务器），file:// 下无法加载 WASM。';
-        outbox.className = 'outbox show';
-        btn.disabled = false;
-        btn.textContent = '重试';
-      });
-    });
-
-    /* ---- 原话输入：前置确定性解析（无 LLM）---- */
-    var parseBtn = document.getElementById('parse-btn');
-    if (parseBtn) parseBtn.addEventListener('click', function(){
-      var raw = document.getElementById('f-raw').value;
-      var r = parseRaw(raw);
-      applyParse(r);
-      // 复用「运行引擎」点击逻辑
-      if (btn) btn.click();
-    });
-
-    function splitSents(text){
-      return text.replace(/[。！？；;]+/g, '\n').split('\n')
-        .map(function(s){ return s.trim(); })
-        .filter(function(s){ return s.length > 0; });
-    }
-
-    function parseRaw(text){
-      var r = { O:'', G:'', S:'', M:'', facts:[], feelings:[], missing:[], features:[] };
-      var mains = splitSents(text);
-      for (var i = 0; i < mains.length; i++){
-        // 子句级分类：按逗号再拆，转折/感受/缺失各自归类
-        var subs = mains[i].replace(/[，,：:]+/g, '\n').split('\n')
-          .map(function(s){ return s.trim(); })
-          .filter(function(s){ return s.length > 0; });
-        for (var j = 0; j < subs.length; j++){
-          var s = subs[j];
-          var isFuture = /接下来|下一步|之后|然后|准备|打算|计划|想|希望|要|先/.test(s);
-          var isTurn = /但|却|不过|然而|可是/.test(s);
-          if (/委屈|担心|焦虑|难过|心累|害怕|慌|压力|难受|不爽|犹豫|背锅/.test(s)) r.feelings.push(s);
-          if (/不知道|不清楚|没告诉|没说明|不确定|缺失|疑问/.test(s)) r.missing.push(s);
-          if (/已经|邮件|确认|给了|发了|做了|会上|说过|书面|文档|预算|人力|人员|资源|安排|负责|分配/.test(s) && !isFuture && !isTurn) r.facts.push(s);
-          if (!isTurn && /老板|上级|让我|叫我|布置|分配|安排|领导说|领导让|领导承诺|领导给|同事说/.test(s)) r.S = r.S || s;
-          if (isTurn && /没|不|缺|卡|难|模糊|不清/.test(s)) r.G = r.G || s;
-          if (!r.O && /想|希望|目标|打算|要/.test(s) && /把|将|让|使|变成|转为|拿到|争取|确认/.test(s) && !/接下来|下一步/.test(s)) r.O = s;
-          if (!r.M && /接下来|下一步|之后|然后|准备|计划/.test(s)) r.M = s;
-        }
-      }
-      if (/两个领导|多头|两位领导|两个老板/.test(text)) r.features.push('两个领导要求冲突');
-      if (/口头|承诺|画饼|晋升/.test(text)) r.features.push('口头承诺晋升');
-      if (!r.O) r.O = '（解析未识别：原话未含明确目标句，请手动填写）';
-      if (!r.S) r.S = '（解析未识别：原话未含情境事件句，请手动填写）';
-      if (!r.G) r.G = '（解析未识别：原话未含差距/卡点句，请手动填写）';
-      if (!r.M) r.M = '（解析未识别：原话未含下一步句，请手动填写）';
-      return r;
-    }
-
-    function applyParse(r){
-      setVal('f-objective', r.O);
-      setVal('f-gap', r.G);
-      setVal('f-situation', r.S);
-      setVal('f-move', r.M);
-      setVal('f-facts', r.facts.join('；'));
-      setVal('f-feelings', r.feelings.join('；'));
-      setVal('f-missing-ctx', r.missing.join('；'));
-      setVal('f-features', r.features.join('；'));
-      deriveEvidence(r.facts);
-    }
-    function setVal(id, v){ var el = document.getElementById(id); if (el) el.value = v; }
-
-    function deriveEvidence(facts){
-      var rows = [];
-      for (var i = 0; i < facts.length; i++){
-        var f = facts[i], k = 'guess';
-        if (/邮件|书面|文档|签字/.test(f)) k = 'written';
-        else if (/预算|人力|人员|资源|给了|分配/.test(f)) k = 'resource';
-        else if (/会上|口头|说|答应|承诺/.test(f)) k = 'oral';
-        rows.push([k, f]);
-        if (rows.length >= 4) break;
-      }
-      for (var j = 0; j < 4; j++){
-        var ek = document.getElementById('f-ev' + j + '-k');
-        var eq = document.getElementById('f-ev' + j + '-q');
-        if (ek) ek.value = rows[j] ? rows[j][0] : 'guess';
-        if (eq) eq.value = rows[j] ? rows[j][1] : '';
-      }
-    }
   })();
 </script>
 </body>
