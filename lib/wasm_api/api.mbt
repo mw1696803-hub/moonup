@@ -62,7 +62,7 @@ pub fn demo_engine() -> String {
   out = out + "执行说明: " + join_sep(rk_r.notes) + "\n"
   out = out + "输出结果: action=" + rk_r.facts.get("action") + "\n\n"
 
-  out = out + "↑ 客服分流与风控审核共用 @engine 核心；向上管理仅是另一个内置规则包。"
+  out = out + "↑ 客服分流与风控审核共用 @engine 核心；规则集可替换为任意业务。"
   out
 }
 

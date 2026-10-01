@@ -12,7 +12,7 @@
 pub(all) enum EvidenceSource {
   WrittenCommitment  // 书面承诺（邮件/任务系统/文档）
   ResourceAllocation // 资源分配（预算/人力/时间）
-  OutcomeChange      // 晋升/绩效/薪酬/角色结果
+  OutcomeChange      // 绩效/薪酬/角色结果
   RepeatedBehavior   // 重复兑现或不兑现行为
   AuthorityMatch     // 权责匹配
   MeetingMinutes     // 会议记录
@@ -249,7 +249,7 @@ test "置信度合成：只有低权重证据 → 低置信度且强制验证动
 ///|
 test "空证据 → 低置信度并提示先收集" {
   let e = EvidenceEngine::new()
-  let r = e.assess([], ["晋升评估标准"])
+  let r = e.assess([], ["评估标准"])
   assert_true(confidence_eq(r.confidence, Low))
   assert_true(r.validation.contains("先收集"))
   assert_eq(r.missing.length(), 1)
