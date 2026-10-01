@@ -1,6 +1,7 @@
 pkgtype(kind: "foreign_library")
 
 import {
+  "mw1696803-hub/upward_mgmt_core/lib/rete",
   "mw1696803-hub/upward_mgmt_core/lib/engine",
   "mw1696803-hub/upward_mgmt_core/lib/ogsm",
   "mw1696803-hub/upward_mgmt_core/lib/evidence",
@@ -14,7 +15,7 @@ import {
 options(
   link: {
     "wasm-gc": {
-      "exports": ["moonup_run", "moonup_demo_engine"],
+      "exports": ["moonup_run", "moonup_demo_engine", "moonup_rete_demo"],
       "use-js-builtin-string": true,
       "imported-string-constants": "_",
     },

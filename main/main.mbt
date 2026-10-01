@@ -1,91 +1,172 @@
-﻿/// MoonUp — 确定性规则引擎库（CLI Demo）
+﻿/// MoonUp Rete — MoonBit 产生式规则引擎（CLI Demo）
+///
+/// 主叙事：Rete 网络 + 工作内存 + 跨事实关联 + 连锁激活。
+/// [0] 三个不同领域的跨事实场景，共用同一个 @rete 核心；
+/// [1]-[3] 可选决策组件（evidence / guardrail / case）以通用口径展示。
 fn main {
-  println("=== MoonUp Rule Engine Demo ===")
+  println("=== MoonUp Rete: MoonBit 产生式规则引擎（Rete 网络）===")
 
-  // --- 通用规则引擎 Demo：两个完全不同业务，同一个 @engine 核心 ---
-  println("\n[0] 通用规则引擎（@engine，与业务语义完全解耦）")
-  println("    场景 A：客服分流规则集")
-  let cs_facts = @engine.Fact::new()
-  cs_facts.set("intent", "退款")
-  cs_facts.set("vip", "true")
-  let cs_engine = @engine.RuleEngine::new([
-    @engine.Rule::new("cs1", "VIP退款", "intent==退款 && vip==true", "route=VIP人工坐席", 10, "VIP退款转专属坐席"),
-    @engine.Rule::new("cs2", "普通退款", "intent==退款", "route=自助退款流程", 5, "普通退款走自助"),
-    @engine.Rule::new("cs3", "VIP标签", "vip==true", "tags+=VIP", 1, "所有VIP加标签"),
-  ])
-  let cs_r = cs_engine.execute(cs_facts)
-  println("    命中 " + cs_r.matched.length().to_string() + " 条规则 → route=" + cs_r.facts.get("route") + "  tags=" + cs_r.facts.get("tags"))
-
-  println("    场景 B：风控审核规则集（同一 engine，换规则数组，引擎零改动）")
-  let rk_facts = @engine.Fact::new()
-  rk_facts.set("amount", "150000")
-  rk_facts.set("new_customer", "true")
-  rk_facts.set("risk_score", "85")
-  let rk_engine = @engine.RuleEngine::new([
-    @engine.Rule::new("rk1", "大额新客", "amount>100000 && new_customer==true", "action=人工复核", 10, "大额+新客强制人工"),
-    @engine.Rule::new("rk2", "普通大额", "amount>100000", "action=加强验证", 5, "大额加强验证"),
-    @engine.Rule::new("rk3", "小额", "amount<1000", "action=自动通过", 1, "小额自动通过"),
-  ])
-  let rk_r = rk_engine.execute(rk_facts)
-  println("    命中 " + rk_r.matched.length().to_string() + " 条规则 → action=" + rk_r.facts.get("action"))
-  println("    ↑ 客服分流与风控审核共用 @engine 核心；下面 [1]-[8] 是向上管理示例规则包")
-
-  // --- OGS-M 清洗示例 ---
-  println("\n[1] OGS-M 情境清洗（示例规则包：向上管理）")
-  let ogsm_engine = @ogsm.OgsmEngine::new()
-  let sep = @ogsm.FactSeparation::new()
-  sep.feelings.push("很委屈，又要背锅")
-  sep.facts.push("老板在会上口头让我负责新项目")
-  sep.facts.push("没有给我预算和人员")
-  sep.missing_context.push("不知道成功怎么评估")
-  let r = ogsm_engine.clean(
-    @ogsm.Ogsm::new(
-      "把口头承诺转化为可验证条件",
-      "新责任出现但授权、资源、评估标准都不清",
-      "老板承诺机会但未明确时间线、资源支持与晋升标准",
-      "将承诺转化为书面条件清单",
+  // ---------------------------------------------------------------
+  // [0] 场景 A：实时风控 —— 跨三类事实关联（order × customer × device）
+  // ---------------------------------------------------------------
+  println("\n[0A] 实时风控：跨事实关联（order × customer × device）")
+  println("    规则：大额订单 && 新客户 && 设备高风险 → 人工复核")
+  let rk_rules : Array[@rete.ReteRule] = [
+    @rete.ReteRule::new(
+      "risk_hold",
+      "跨事实风控",
+      "order.amount>100000 && customer.is_new==true && device.risk==high && order.customer_id==customer.id",
+      "action=manual_review & order.status=hold",
+      10,
+      "订单金额、客户属性、设备风险三类事实关联才触发",
     ),
-    sep,
-    true,
-    true,
-  )
-  println("  四元组齐全: " + r.valid.to_string())
-  println("  事实: " + join(sep.facts))
-  println("  感受: " + join(sep.feelings))
-  println("  漂移检测: " + r.drift_note)
+    @rete.ReteRule::new(
+      "risk_attach",
+      "风控标签",
+      "order.customer_id==customer.id && device.risk==high",
+      "order.tags+=risk_device & customer.tags+=high_risk",
+      5,
+      "跨事实绑定命中即打标签",
+    ),
+  ]
+  let rk_eng = @rete.ReteEngine::new(rk_rules)
+  let rk_wm = @rete.WorkingMemory::new()
+  let dev = @rete.Fact::make("device")
+  dev.set("risk", "high")
+  let cus = @rete.Fact::make("customer")
+  cus.set("is_new", "true")
+  cus.set("id", "c-1001")
+  let ord = @rete.Fact::make("order")
+  ord.set("amount", "150000")
+  ord.set("customer_id", "c-1001")
+  rk_eng.insert(rk_wm, dev)
+  rk_eng.insert(rk_wm, cus)
+  rk_eng.insert(rk_wm, ord)
+  println("    alpha节点=" + rk_eng.alpha_count().to_string() + " beta节点=" +
+    rk_eng.beta_count().to_string() + " terminal=" + rk_eng.terminal_count().to_string())
+  let rk_r = rk_eng.fire_all(rk_wm)
+  println("    触发 " + rk_r.fired.length().to_string() + " 条: " + join(rk_r.fired))
+  let orders = rk_r.facts.filter(fn(f) { f.kind == "order" })
+  if orders.length() > 0 {
+    let of = orders[orders.length() - 1]
+    println("    订单最终状态: status=" + of.get("status") + " tags=" + of.get("tags"))
+  }
+  let customers = rk_r.facts.filter(fn(f) { f.kind == "customer" })
+  if customers.length() > 0 {
+    println("    客户标签: " + customers[0].get("tags"))
+  }
+  println("    ↑ 同一引擎承载跨事实关联；new_customer/大额/高风险分开是三条规则也各自成立")
 
-  // --- Evidence 证据分级示例 ---
-  println("\n[2] Evidence 证据分级与置信度")
+  // ---------------------------------------------------------------
+  // [0] 场景 B：工单路由 —— 共享子条件（VIP 条件 alpha 节点复用）
+  // ---------------------------------------------------------------
+  println("\n[0B] 工单路由：共享子条件（VIP 条件只编译一次）")
+  println("    两条规则共享 customer.vip==true，Rete 共享该 alpha 节点")
+  let wm2 = @rete.WorkingMemory::new()
+  let tick_rules : Array[@rete.ReteRule] = [
+    @rete.ReteRule::new(
+      "vip_senior",
+      "VIP工单进资深坐席",
+      "customer.vip==true && ticket.priority==high",
+      "ticket.route=senior_agent",
+      10,
+      "VIP + 高优先级",
+    ),
+    @rete.ReteRule::new(
+      "vip_sla",
+      "VIP工单加急",
+      "customer.vip==true && ticket.priority==high",
+      "ticket.sla=15min",
+      8,
+      "共享 VIP 条件，仅动作不同",
+    ),
+  ]
+  let tick_eng = @rete.ReteEngine::new(tick_rules)
+  let vip = @rete.Fact::make("customer")
+  vip.set("vip", "true")
+  vip.set("id", "c-7")
+  let tick = @rete.Fact::make("ticket")
+  tick.set("priority", "high")
+  tick.set("customer_id", "c-7")
+  tick_eng.insert(wm2, vip)
+  tick_eng.insert(wm2, tick)
+  println("    共享前条件数=2 条规则 → alpha节点=" + tick_eng.alpha_count().to_string() +
+    "（VIP 条件 1 个共享节点，未重复编译）")
+  let t_r = tick_eng.fire_all(wm2)
+  println("    触发 " + t_r.fired.length().to_string() + " 条: " + join(t_r.fired))
+  let t_final = wm2.get(2)
+  match t_final {
+    Some(f) => println("    工单: route=" + f.get("route") + " sla=" + f.get("sla"))
+    None => ()
+  }
+
+  // ---------------------------------------------------------------
+  // [0] 场景 C：库存促销 —— 动作修改事实 → 连锁激活（含 fire limit）
+  // ---------------------------------------------------------------
+  println("\n[0C] 库存促销：连锁激活（下单→扣库存→补货→再触发）")
+  let inv_rules : Array[@rete.ReteRule] = [
+    @rete.ReteRule::new(
+      "stock_apply",
+      "下单扣库存",
+      "order.status==placed && product.stock>=order.qty",
+      "product.stock-=order.qty & order.status=fulfilled",
+      10,
+      "订单成立即扣库存",
+    ),
+    @rete.ReteRule::new(
+      "stock_reorder",
+      "低库存补货",
+      "product.stock<10",
+      "product.stock+=100 & action=reorder_triggered",
+      8,
+      "低于阈值自动补货",
+    ),
+  ]
+  let inv_eng = @rete.ReteEngine::new(inv_rules)
+  let inv_wm = @rete.WorkingMemory::new()
+  let prod = @rete.Fact::make("product")
+  prod.set("stock", "5")
+  let o1 = @rete.Fact::make("order")
+  o1.set("status", "placed")
+  o1.set("qty", "2")
+  inv_eng.insert(inv_wm, prod)
+  inv_eng.insert(inv_wm, o1)
+  let inv_r = inv_eng.fire_all(inv_wm, limit=50)
+  println("    触发链: " + join(inv_r.fired))
+  let p_final = inv_wm.get(1)
+  match p_final {
+    Some(f) => println("    库存最终值: " + f.get("stock") + "（5-2 后触底 <10 → 补货 +100）")
+    None => ()
+  }
+  println("    触发轨迹（前 3 条）:")
+  let mut n = 0
+  while n < inv_r.trace.length() && n < 3 {
+    println("      " + inv_r.trace[n])
+    n = n + 1
+  }
+  println("    ↑ 动作修改事实会触发增量传播与连锁激活，fire limit 防止无限循环")
+
+  // ---------------------------------------------------------------
+  // [1] 可选决策组件：Evidence 证据分级（通用口径）
+  // ---------------------------------------------------------------
+  println("\n[1] Evidence 证据分级（可选组件，与引擎解耦）")
   let ev = @evidence.EvidenceEngine::new()
   let items = [
-    @evidence.EvidenceItem::new(@evidence.WrittenCommitment, "邮件确认了新项目范围"),
+    @evidence.EvidenceItem::new(@evidence.WrittenCommitment, "邮件确认了项目范围"),
     @evidence.EvidenceItem::new(@evidence.ResourceAllocation, "给了预算但没给人力"),
     @evidence.EvidenceItem::new(@evidence.SingleOralPromise, "会上口头说'会考虑晋升'"),
     @evidence.EvidenceItem::new(@evidence.UserGuess, "我感觉他在故意拖延"),
   ]
   let ea = ev.assess(items, ["晋升评估标准", "预算审批人"])
-  println("  置信度: " + ea.confidence.to_string())
-  println("  " + ea.summary)
+  println("  置信度: " + ea.confidence.to_string() + " | " + ea.summary)
   println("  缺失信息: " + join(ea.missing))
-  for item in ea.items {
-    println("    [" + item.source.label() + " w=" + item.source.weight().to_string() + "] " + item.quote)
-  }
+  println("  ↑ 任何需要证据分级的决策过程都可复用（风控举证、审核材料、绩效评估等）")
 
-  // --- Scenario 场景路由示例 ---
-  println("\n[3] Scenario 场景路由")
-  let sr = @scenario.ScenarioRouter::new()
-  let rt = sr.route(["两个领导要求冲突", "上个月刚说晋升会考虑", "跨部门协作受阻"])
-  println("  主场景: " + rt.primary.label())
-  for s in rt.secondary {
-    println("  次场景: " + s.label())
-  }
-  println("  命中: " + join(rt.matched))
-  println("  提示: " + rt.hint)
-
-  // --- Guardrail 防偏见护栏示例 ---
-  println("\n[4] Guardrail 防偏见护栏")
+  // ---------------------------------------------------------------
+  // [2] 可选决策组件：Guardrail 决策偏见护栏（通用口径）
+  // ---------------------------------------------------------------
+  println("\n[2] Guardrail 决策偏见护栏（可选组件，与引擎解耦）")
   let gr = @guardrail.GuardrailEngine::new()
-  // make(痛苦转述, 措辞漂亮, 行为矛盾, 文化, 疲惫, 高期待, 仅感觉, 仅转写, 有硬证据)
   let gs = @guardrail.GuardrailSignals::make(true, true, true, false, false, true, false, false, false)
   let ga = gr.check(gs)
   println("  是否安全通过: " + ga.safe.to_string())
@@ -96,179 +177,37 @@ fn main {
   for c in ga.required_check {
     println("    · " + c)
   }
+  println("  ↑ 防的是决策偏见本身（转述放大/措辞矛盾/仅凭感觉），不绑定任何业务场景")
 
-  // --- Hypothesis 假设空间示例 ---
-  println("\n[5] Hypothesis 假设空间")
-  let he = @hypothesis.HypothesisEngine::new()
-  let hs = he.build(
-    ["口头承诺只是漂亮话，不会兑现", "老板确实想给机会但缺乏机制", "他在用拖延试探我的底线"],
-    ["晋升评估标准"],
-  )
-  println("  假设数: " + hs.hypotheses.length().to_string())
-  for h in hs.hypotheses {
-    println("    · " + h.statement + " → 验证: " + h.validation_move)
-  }
-  println("  最值得优先: " + hs.most_worth_prioritizing)
-  println("  下一步: " + hs.next_move)
-
-  // --- Case 案例检索示例 ---
-  println("\n[6] Case 案例检索")
+  // ---------------------------------------------------------------
+  // [3] 可选决策组件：Case 案例库（通用口径）
+  // ---------------------------------------------------------------
+  println("\n[3] Case 案例库（可选组件，与引擎解耦）")
   let cl = @case.CaseLibrary::new()
   let cr = cl.search(["promotion", "multi-leader"])
-  println("  命中 " + cr.total.to_string() + " 条案例")
+  println("  命中 " + cr.total.to_string() + " 条内置示例案例")
   for m in cr.matches {
     println("    · " + m.card.id + " [" + m.card.principle + "]")
-    if m.mismatch_note != "" {
-      println("      " + m.mismatch_note)
-    }
   }
-  println("  " + cr.note)
-
-  // --- Case 生长口子演示：追加案例 + 检索命中 ---
   let gl = @case.CaseLibrary::new()
   let _ = gl.add_card(@case.CaseCard::make(
-    "c-user-demo",
-    ["hr", "labor-risk"],
-    "hr",
+    "c-demo-extra",
+    ["general", "risk"],
+    "general",
     "document",
     "high",
     "anonymized-case",
-    "劳动风险场景：先咨询专业意见，不留书面把柄",
-    "我先了解一下流程，必要时咨询专业意见再回复",
-    "对方已正式启动法律程序时，个人话术不再适用",
+    "通用决策案例：先核实再行动",
+    "先确认事实依据，再推进决策",
+    "对方已给出书面承诺时仍需验证执行条件",
   ))
-  println("  生长口子: 内置 5 条 + 追加 1 条 = " + gl.export_cards().length().to_string() + " 条")
-  let gr = gl.search(["hr"])
-  println("  新增案例可检索命中: " + gr.matches[0].card.id + "（" + gr.matches[0].card.source + "）")
-
-  // --- Case 落盘 + 反馈闭环演示 ---
   let json_str = gl.save_json()
-  let restored = @case.CaseLibrary::load_json(json_str)
-  match restored {
-    Ok(lib2) => println("  落盘 round-trip: JSON " + json_str.length().to_string() + " 字符 → 恢复 " + lib2.export_cards().length().to_string() + " 条")
+  match @case.CaseLibrary::load_json(json_str) {
+    Ok(lib2) => println("  落盘 round-trip: JSON " + json_str.length().to_string() + " 字符 → 恢复 " +
+      lib2.export_cards().length().to_string() + " 条")
     Err(e) => println("  落盘失败: " + e)
   }
-  let fb = gl.record_feedback("c-user-demo", "positive", "真实调用：按脚本先咨询专业意见，用户接受")
-  let status = gl.export_cards().filter(fn(c) { c.id == "c-user-demo" })[0].status
-  println("  反馈闭环: " + fb.reason + " → 状态 " + status)
-  let bad = @case.CaseLibrary::load_json("{ 不是合法 JSON")
-  match bad {
-    Err(e) => println("  损坏 JSON 容错: " + e)
-    Ok(_) => println("  损坏 JSON 容错: 不应发生")
-  }
-  println("  沉淀方向: 落盘(宿主写文件) → 命中计数 → 高频案例经 feedback 验证后沉淀为用户机制")
-
-  // --- 机制候选演示（高频 + 已验证）---
-  let _ = gl.record_hit("c-user-demo")
-  let _ = gl.record_hit("c-user-demo")
-  let cands = gl.mechanism_candidates(2)
-  let mut cand_info = ""
-  if cands.length() > 0 {
-    cand_info = " → " + cands[0].id
-  }
-  println("  机制候选(命中≥2 且已验证): " + cands.length().to_string() + " 条" + cand_info)
-
-  // --- Output 12 段报告示例（MVP 端到端最后一段）---
-  println("\n[7] Output 12 段结构化报告")
-  let oe = @output.OutputEngine::new()
-  let oi = @output.ReportInputs::new()
-  oi.set("objective", "把口头承诺转化为可验证条件")
-  oi.set("gap", "承诺出现但时间线/资源/评估标准不清")
-  oi.set("situation", "老板口头承诺机会，未明确支持与标准")
-  oi.set("move", "书面确认评估标准与时间线")
-  oi.set("happening", "新项目责任 + 口头晋升承诺")
-  oi.set("stuck", "无法判断承诺是否真实")
-  oi.set("missing", "晋升评估标准、预算审批人")
-  oi.set("hypothesis_a", "漂亮话不会兑现")
-  oi.set("hypothesis_b", "确实想给机会但缺机制")
-  oi.set("priority", "缺机制")
-  oi.set("user_side", "急需认可、怕错过机会")
-  oi.set("boss_side", "有资源但未明确分配")
-  oi.set("decision_rights", "晋升评估人未指明")
-  oi.set("capacity", "可执行书面确认动作")
-  oi.set("protect", "避免把口头承诺当结果")
-  oi.set("known_facts", "邮件确认范围；给了预算")
-  oi.set("unverified", "口头晋升承诺；感觉被拖延")
-  oi.set("confidence", "高（有书面与资源证据）")
-  oi.set("similar_case", "c-promotion 口头承诺转书面条件")
-  oi.set("transfers", "先书面确认标准再行动")
-  oi.set("may_not_apply", "组织若无晋升机制则需换路径")
-  oi.set("best_next", "发一封确认邮件列评估标准")
-  oi.set("why_move", "把模糊承诺变成可验证条件")
-  oi.set("not_conclude", "暂不认定承诺一定兑现或一定不兑现")
-  oi.set("third_option", "先确认标准，不急着表忠心或对抗")
-  oi.set("suggested_move", "本周内完成书面确认并设定复查时间点")
-  oi.set("script_safe", "麻烦把评估标准和时间线书面发我，我对照准备")
-  oi.set("script_boundary", "如果对方拒绝书面确认，我会把口头内容复述邮件回执")
-  oi.set("script_traceable", "邮件正文写明'按今天 1:1 共识，评估标准为…请确认'")
-  oi.set("observe_next", "观察两周内是否有书面反馈或资源动作")
-  println(oe.render(oi))
-  println("  安全边界检查: " + @output.OutputEngine::safety_boundaries().length().to_string() + " 条已内置")
-
-  // --- MVP 端到端：单情境走完全部 7 个模块 ---
-  println("\n[8] MVP 端到端管线（单情境全链路）")
-  // 情境：口头晋升承诺（画饼）+ 多头领导冲突 + 资源缺失
-  // 1. OGS-M 清洗
-  let m_ogsm = @ogsm.OgsmEngine::new()
-  let m_sep = @ogsm.FactSeparation::new()
-  m_sep.facts.push("会上口头承诺晋升，邮件确认了项目范围")
-  m_sep.feelings.push("很委屈")
-  m_sep.missing_context.push("评估标准")
-  let m_clean = m_ogsm.clean(
-    @ogsm.Ogsm::new("把晋升口头承诺转为可验证条件", "承诺无评估标准，且两领导优先级冲突", "老板画饼 + 多头领导 + 只给口头支持", "书面确认评估标准并拉齐领导优先级"),
-    m_sep,
-    true,
-    true,
-  )
-  // 2. Evidence 分级
-  let m_ev = @evidence.EvidenceEngine::new()
-  let m_items = [
-    @evidence.EvidenceItem::new(@evidence.WrittenCommitment, "邮件确认了项目范围"),
-    @evidence.EvidenceItem::new(@evidence.SingleOralPromise, "会上口头说会考虑晋升"),
-    @evidence.EvidenceItem::new(@evidence.UserGuess, "感觉被拖着"),
-  ]
-  let m_ea = m_ev.assess(m_items, ["晋升评估标准", "两领导优先级"])
-  // 3. Scenario 路由
-  let m_sr = @scenario.ScenarioRouter::new()
-  let m_rt = m_sr.route(["口头承诺晋升", "两个领导要求冲突"])
-  // 4. Guardrail 检查
-  let m_gr = @guardrail.GuardrailEngine::new()
-  let m_gs = @guardrail.GuardrailSignals::make(true, true, true, false, false, true, false, false, false)
-  let m_ga = m_gr.check(m_gs)
-  // 5. Hypothesis 空间
-  let m_he = @hypothesis.HypothesisEngine::new()
-  let m_hs = m_he.build(["漂亮话不会兑现", "想给机会但缺机制"], ["晋升评估标准"])
-  // 6. Case 检索
-  let m_cl = @case.CaseLibrary::new()
-  let m_cr = m_cl.search(["promotion", "multi-leader"])
-  // 7. Output 12 段报告
-  let m_oe = @output.OutputEngine::new()
-  let m_oi = @output.ReportInputs::new()
-  m_oi.set("objective", m_clean.ogsm.objective)
-  m_oi.set("gap", m_clean.ogsm.gap)
-  m_oi.set("situation", m_clean.ogsm.situation)
-  m_oi.set("move", m_clean.ogsm.next_action)
-  m_oi.set("missing", "晋升评估标准、两领导优先级")
-  m_oi.set("hypothesis_a", m_hs.hypotheses[0].statement)
-  m_oi.set("hypothesis_b", m_hs.hypotheses[1].statement)
-  m_oi.set("priority", m_hs.most_worth_prioritizing)
-  m_oi.set("known_facts", "邮件确认范围（高权重）")
-  m_oi.set("unverified", "口头晋升承诺；感觉被拖着")
-  m_oi.set("confidence", m_ea.confidence.to_string() + "（有书面证据）")
-  m_oi.set("similar_case", m_cr.matches[0].card.id + "：" + m_cr.matches[0].card.principle)
-  m_oi.set("transfers", "先书面确认标准再行动")
-  m_oi.set("may_not_apply", "组织若无晋升机制需换路径")
-  m_oi.set("best_next", m_clean.ogsm.next_action)
-  m_oi.set("why_move", "把模糊承诺变成可验证条件，拉齐多头领导优先级")
-  m_oi.set("not_conclude", "暂不认定承诺一定兑现或一定不兑现")
-  m_oi.set("third_option", "先确认标准，不急着表忠心或对抗")
-  m_oi.set("suggested_move", "本周书面确认 + 拉三方会定优先级")
-  m_oi.set("script_safe", "麻烦把评估标准和时间线书面发我，我对照准备")
-  m_oi.set("script_traceable", "邮件写明'按今天共识，评估标准为…请确认'")
-  m_oi.set("observe_next", "观察两周内是否有书面反馈或资源动作")
-  println("  管线步骤: 清洗(四元组=" + m_clean.valid.to_string() + ") → 证据(置信度=" + m_ea.confidence.to_string() + ") → 路由(" + m_rt.primary.label() + ") → 护栏(" + m_ga.triggered.length().to_string() + "条触发) → 假设(" + m_hs.hypotheses.length().to_string() + "条) → 案例(" + m_cr.total.to_string() + "条) → 报告(12段)")
-  println("  --- 12 段报告片段 ---")
-  println(m_oe.render(m_oi))
+  println("  ↑ 案例沉淀机制（命中计数/反馈闭环）与领域无关，可接任意规则引擎结果")
 }
 
 fn note_of(g : @guardrail.GuardrailType) -> String {
@@ -289,7 +228,7 @@ fn join(arr : Array[String]) -> String {
   let mut i = 0
   while i < arr.length() {
     if i > 0 {
-      s = s + "; "
+      s = s + ", "
     }
     s = s + arr[i]
     i = i + 1

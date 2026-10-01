@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MoonUp Rules - MoonBit Embeddable Deterministic Rule Engine</title>
+<title>MoonUp Rete - MoonBit 产生式规则引擎（Rete 网络）</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316202B'/%3E%3Ctext x='32' y='45' font-size='38' font-family='Georgia,serif' font-weight='700' text-anchor='middle' fill='%23C98F45'%3EM%3C/text%3E%3C/svg%3E">
 <style>
   :root{
     --bg:#16202b; --panel:#1f2b38; --panel2:#263343; --line:#33445a;
     --ink:#e8e4da; --ink-dim:#9aa5b1; --ink-faint:#6b7686;
     --accent:#c98f45; --accent-soft:rgba(201,143,69,.14);
+    --green:#8fb98f;
     --mono:'Cascadia Code','Consolas','Menlo',monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -18,7 +19,7 @@
   .hero{padding-bottom:28px;border-bottom:1px solid var(--line);margin-bottom:28px}
   .hero .topline{font-family:var(--mono);font-size:12px;color:var(--ink-faint);letter-spacing:2px;margin-bottom:10px}
   .hero h1{font-family:'Noto Serif SC','Songti SC',serif;font-size:32px;font-weight:700;letter-spacing:.5px}
-  .hero .sub{margin-top:10px;color:var(--ink-dim);font-size:15px;max-width:760px;line-height:1.75}
+  .hero .sub{margin-top:10px;color:var(--ink-dim);font-size:15px;max-width:780px;line-height:1.75}
   .hero .sub b{color:var(--accent)}
   .hero .badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
   .badge{border:1px solid var(--line);border-radius:8px;padding:7px 14px;font-size:13px;color:var(--ink-dim);background:var(--panel)}
@@ -35,7 +36,7 @@
   .split .side-h{font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:1px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
   .split .side-l{border-right:1px solid var(--line)}
   .split pre{margin:0;padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--ink);white-space:pre-wrap;word-break:break-word;min-height:220px;max-height:460px;overflow:auto;background:var(--bg)}
-  .split .out-side pre{color:#c8e6c9}
+  .split .out-side pre{color:var(--green)}
   .engine-note{font-size:12px;color:var(--ink-faint);margin-top:10px;line-height:1.7}
   .engine-note code{font-family:var(--mono);background:var(--panel);padding:1px 6px;border-radius:4px;color:var(--ink-dim)}
   .codeblock{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:14px}
@@ -62,165 +63,128 @@
 <body>
 <div class="wrap">
   <header class="hero">
-    <div class="topline">MOONBIT NATIVE - DETERMINISTIC RULE ENGINE - WASM - MIT</div>
-    <h1>MoonUp Rules</h1>
-    <p class="sub">A <b>deterministic, embeddable rule engine library</b> for MoonBit. Write business rules as data (Rule / Fact / DSL); the engine handles condition matching, priority-based conflict resolution, and action execution. Same input always yields the same output -- testable, auditable, no LLM hallucination. Embed in CLI, server, WASM browser, or IM bots.</p>
+    <div class="topline">MOONBIT NATIVE - PRODUCTION RULE ENGINE (RETE NETWORK) - WASM - MIT</div>
+    <h1>MoonUp Rete</h1>
+    <p class="sub">MoonBit 原生<b>产生式规则引擎（Rete 网络）</b>。规则编译为 alpha / beta / terminal 节点网络：<b>工作内存</b>维护有状态事实集合，事实 insert / update / retract 只沿网络<b>增量传播</b>，支持<b>跨事实变量绑定 join</b> 与<b>连锁激活</b>；冲突消解按 salience → specificity → recency 确定性排序。同一规则集 + 同一事实流恒得到同一结果——可测试、可审计、无 LLM 幻觉。CLI / 服务端 / WASM 浏览器均可嵌入。</p>
     <div class="badges">
-      <div class="badge"><b>112</b>unit tests</div>
+      <div class="badge"><b>122</b>unit tests</div>
       <div class="badge"><b>0</b>external deps</div>
-      <div class="badge"><b>8</b>modules</div>
+      <div class="badge"><b>Rete</b>network core</div>
       <div class="badge"><b>WASM</b>runs in browser</div>
     </div>
   </header>
 
-  <div class="sec-title"><span class="n">00</span>How it works -- rules on the left, real engine output on the right<span class="demo-tag">runs locally in WASM, not a screenshot</span></div>
+  <div class="sec-title"><span class="n">00</span>同一引擎、三个不同领域——规则在左，真实引擎输出在右<span class="demo-tag">本地 WASM 实时运行，非截图</span></div>
   <div class="tabs">
-    <div class="tab active" data-scene="cs">Customer Service Routing</div>
-    <div class="tab" data-scene="rk">Risk Review</div>
-    <div class="tab" data-scene="tier">Customer Tiering</div>
+    <div class="tab active" data-scene="a">Cross-Fact Risk</div>
+    <div class="tab" data-scene="b">Shared-Alpha Routing</div>
+    <div class="tab" data-scene="c">Chained Inventory</div>
   </div>
   <div class="split-wrap">
     <div class="split">
       <div class="side side-l">
-        <div class="side-h">// your rules (MoonBit code, injected at runtime)</div>
+        <div class="side-h">// 你的规则（Rete DSL，跨事实关联）</div>
         <pre id="rules-pre">loading...</pre>
       </div>
       <div class="side out-side">
-        <div class="side-h">// engine output (RuleEngine.execute real return)</div>
+        <div class="side-h">// 引擎输出（ReteEngine::fire_all 真实返回值）</div>
         <pre id="engine-out-pre">loading...</pre>
       </div>
     </div>
   </div>
-  <div class="engine-note">All three tabs share the same <code>moonup.wasm</code> core. Switching tabs only swaps the rule array and input facts -- zero changes to engine code.</div>
+  <div class="engine-note">三个 tab 共享同一个 <code>moonup.wasm</code> 核心。切换 tab 只换规则集与事实流，引擎零改动——这正是"规则即数据、引擎与业务语义解耦"的现场证据。</div>
 
-  <div class="sec-title"><span class="n">01</span>Use it as a dependency -- minimal example</div>
-  <p style="color:var(--ink-dim);font-size:14px;margin-bottom:6px">The core engine (<code>@engine</code>) has zero business semantics. Any MoonBit project can import it and inject its own rule set:</p>
+  <div class="sec-title"><span class="n">01</span>核心概念：Rete 网络 + 工作内存</div>
   <div class="codeblock">
-    <div class="ch">main.mbt</div>
-<pre><span class="cm">// 1. Define rules: condition DSL + action + priority</span>
+    <div class="ch">network compile -&gt; incremental propagation -&gt; conflict resolution -&gt; chain activation</div>
+<pre><span class="cm">// 1. 定义规则：跨事实条件 + 动作 + salience</span>
 let rules = [
-  Rule::new("vip_refund", "VIP refund",
-    "intent==refund && vip==true",
-    "route=vip_agent", 10, "VIP to dedicated agent"),
-  Rule::new("normal_refund", "Normal refund",
-    "intent==refund",
-    "route=self_service", 5, "Self-service flow"),
+  ReteRule::new("risk_hold", "跨事实风控",
+    "order.amount&gt;100000 &amp;&amp; customer.is_new==true &amp;&amp; device.risk==high
+     &amp;&amp; order.customer_id==customer.id",          <span class="cm">// 跨事实变量绑定 join</span>
+    "action=manual_review &amp; order.status=hold", 10,
+    "订单金额、客户属性、设备风险三类事实关联才触发"),
 ]
 
-<span class="cm">// 2. Build facts (from your business input)</span>
-let fact = Fact::new()
-fact.set("intent", "refund")
-fact.set("vip", "true")
+<span class="cm">// 2. 工作内存：有状态事实集合（insert / retract）</span>
+let wm = WorkingMemory::new()
+let order = Fact::make("order")
+order.set("amount", "150000"); order.set("customer_id", "c-1001")
+...
 
-<span class="cm">// 3. Execute -- deterministic, testable, auditable</span>
-let result = RuleEngine::new(rules).execute(fact)
-<span class="cm">// result.matched  -> list of matched rules</span>
-<span class="cm">// result.facts    -> fact snapshot after actions</span>
-<span class="cm">// result.notes    -> per-rule execution notes (auditable)</span></pre>
+<span class="cm">// 3. 编译网络 + 增量传播 + 冲突消解 + 连锁激活</span>
+let engine = ReteEngine::new(rules)
+engine.insert(wm, customer); engine.insert(wm, device)
+engine.insert(wm, order)          <span class="cm">// 只沿网络重算受影响分支</span>
+let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</span>
+<span class="cm">// result.fired -&gt; 触发序列（含连锁激活）</span>
+<span class="cm">// result.trace -&gt; 每条触发的规则/事实/动作轨迹（可审计）</span></pre>
   </div>
-  <div class="engine-note">Operators: <code>==</code> <code>!=</code> <code>~=</code> (substring) <code>&gt;</code> <code>&lt;</code> <code>&gt;=</code> <code>&lt;=</code>; logic <code>&amp;&amp;</code>. Actions: <code>=</code> (override, higher priority wins) or <code>+=</code> (append tag).</div>
+  <div class="engine-note">条件 DSL：<code>==</code> <code>!=</code> <code>~=</code> <code>&gt;</code> <code>&lt;</code> <code>&gt;=</code> <code>&lt;=</code> 与 <code>&amp;&amp;</code>；跨事实引用形如 <code>order.customer_id==customer.id</code>。动作：<code>=</code> 赋值 / <code>+=</code> 追加标签 / <code>-=</code> 数值扣减，可引用其他事实字段（<code>product.stock-=order.qty</code>）。幂等保护：字段值未变化的重插被跳过，防止无限自触发。</div>
 
-  <div class="sec-title"><span class="n">02</span>What the engine provides</div>
+  <div class="sec-title"><span class="n">02</span>为什么 MoonBit 生态需要它</div>
   <div class="caps">
     <div class="cap">
-      <h4>Deterministic execution</h4>
-      <p>Same rule set + same structured input always yields the same output. No LLM, no hallucination, fully reproducible.</p>
+      <h4>生态缺口：产生式规则引擎</h4>
+      <p>MoonBit 生态现有 moonrule（JSON 表达式校验）是"输入合不合法"的无状态单条求值；<b>没有</b>面向"事实流变化时该做什么"的有状态产生式引擎。MoonUp Rete 补齐这一生态位。</p>
     </div>
     <div class="cap">
-      <h4>Priority &amp; conflict resolution</h4>
-      <p>When multiple rules match, they execute in priority order. Same-priority ties have a deterministic order -- no runtime randomness.</p>
+      <h4>跨事实关联</h4>
+      <p>规则条件可引用多个事实（order × customer × device）并做变量绑定 join——比单事实匹配高一个抽象层，直接支撑风控、路由、库存等真实业务。</p>
     </div>
     <div class="cap">
-      <h4>Auditable</h4>
-      <p>Returns which rules matched, in what order, and which field each action changed. Fact -> Rule -> Action -> Result is fully traceable.</p>
+      <h4>增量传播 + 连锁激活</h4>
+      <p>事实增删改只重算受影响分支；动作修改事实可再次触发规则（匹配-选择-执行循环），fire limit 与幂等保护共同防止失控循环。</p>
     </div>
     <div class="cap">
-      <h4>Rules as data</h4>
-      <p>Rules are injected via the MoonBit API, decoupled from engine code. Switching business domains = swapping the rule array, not touching the core.</p>
-    </div>
-    <div class="cap">
-      <h4>Embeddable</h4>
-      <p>Zero external dependencies. Compile to native library, CLI tool, or WASM for in-browser execution (this page is proof).</p>
-    </div>
-    <div class="cap">
-      <h4>Testable</h4>
-      <p>112 unit tests cover condition matching, conflict resolution, integer parsing edge cases, and rejection of malformed rules. Every rule can be independently asserted.</p>
+      <h4>可审计、可测试</h4>
+      <p>每次触发返回规则 id、事实组合与动作轨迹；每条规则可独立断言。122 个单元测试覆盖 join、共享节点、冲突消解、连锁与边界解析。</p>
     </div>
   </div>
 
-  <div class="sec-title"><span class="n">03</span>Who uses it</div>
-  <div class="caps">
-    <div class="cap">
-      <h4>Support / ticket routing</h4>
-      <ul>
-        <li>Route tickets by intent, VIP tier, amount</li>
-        <li>Each business line injects its own rule set</li>
-      </ul>
-    </div>
-    <div class="cap">
-      <h4>Risk / compliance review</h4>
-      <ul>
-        <li>Large amount + new customer -> manual review</li>
-        <li>Auditable rules meet compliance requirements</li>
-      </ul>
-    </div>
-    <div class="cap">
-      <h4>Customer tiering / marketing</h4>
-      <ul>
-        <li>Tag customers by behavior, region, spend</li>
-        <li>Ops adjusts rules without touching core code</li>
-      </ul>
-    </div>
-    <div class="cap">
-      <h4>API validation / business rules</h4>
-      <ul>
-        <li>Consolidate scattered if/else into a maintainable rule set</li>
-        <li>Complements moonrule (JSON schema validation): moonrule checks input validity, this engine decides what to do on match</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="sec-title"><span class="n">04</span>Current capabilities vs roadmap</div>
+  <div class="sec-title"><span class="n">03</span>当前能力 vs 路线图</div>
   <div class="codeblock">
     <div class="ch">Honest boundaries -- no overpromising</div>
 <pre><span class="kw">Implemented</span>
-  Condition DSL: == != ~= &amp;&amp; &gt; &lt; &gt;= &lt;= (strict integer parsing)
-  Actions: = override / += append tag
-  Priority ordering and conflict resolution
-  Deterministic execution (same input, same output)
-  Matched rule list + execution notes (auditable)
-  WASM export, runs locally in browser
-  112 unit tests, CI green
+  Rete 网络编译：alpha（单条件，跨规则共享）/ beta（跨事实 join）/ terminal
+  工作内存：insert / retract / snapshot；增量传播（left/right activation）
+  跨事实变量绑定 join（order.customer_id==customer.id）
+  冲突消解：salience -&gt; specificity -&gt; recency -&gt; rule id（完全确定性）
+  match-select-act 循环 + fire limit + 幂等保护（防止自触发死循环）
+  动作 DSL：= / += / -=，支持跨事实引用值
+  触发轨迹 trace（可审计）
+  WASM 导出，浏览器本地运行
+  122 个单元测试，CI 通过
 
-<span class="cm">// Roadmap (not yet implemented, not promised)</span>
-  || / ! / parenthesized nested logic
-  JSON / config file rule loading (currently via MoonBit API injection)
-  Rule validation and error line reporting
-  Multi-pass chaining (currently single-pass: match -> act)
-  Large-scale rule optimization (Rete, etc.)</pre>
+<span class="cm">// Roadmap（未实现，不作承诺）</span>
+  || / ! / 括号嵌套逻辑
+  JSON / 配置文件直接加载（当前经 MoonBit API 注入规则）
+  规则校验与错误定位
+  大规模规则集性能基准（当前定位：几十到几百条规则规模）
+  多轮非线性传播优化（Rete 经典增量 update 语义）</pre>
   </div>
 
   <div class="foot">
-    <div>This page runs <code>moonup.wasm</code> compiled from the core library entirely in your browser. Reproduce: <code>git clone https://github.com/mw1696803-hub/moonup</code> -> <code>moon test</code> -> <code>moon run main</code>.</div>
-    <div style="margin-top:6px">2026 MoonBit Hackathon - September edition - MIT License</div>
+    <div>本页运行 <code>moonup.wasm</code>（由 MoonBit 核心库编译）于浏览器本地执行。复现：<code>git clone https://github.com/mw1696803-hub/moonup</code> → <code>moon test</code>（122 passed）→ <code>moon run main</code> → <code>moon build --release --target wasm-gc</code>。</div>
+    <div style="margin-top:6px">2026 MoonBit Hackathon - October edition - MIT License - 参考 Rete 算法（Forgy 1974）</div>
   </div>
 </div>
 
 <script>
   var SCENES = {
-    cs: {
+    a: {
       rules:
-'// Customer service routing rules\nlet engine = RuleEngine::new([\n  Rule::new("cs1", "VIP refund",\n    "intent==refund && vip==true",\n    "route=VIP_agent", 10,\n    "VIP refund to dedicated agent"),\n  Rule::new("cs2", "Normal refund",\n    "intent==refund",\n    "route=self_service", 5,\n    "Normal refund self-service"),\n  Rule::new("cs3", "VIP tag",\n    "vip==true",\n    "tags+=VIP", 1,\n    "Tag all VIP users"),\n])\n\n// Input fact\nlet fact = Fact::new()\nfact.set("intent", "refund")\nfact.set("vip", "true")\n\nengine.execute(fact)',
+'// 场景 A：跨事实风控（order × customer × device）\n// 大额订单 && 新客户 && 设备高风险 → 人工复核\n// order.customer_id==customer.id 跨事实绑定 join\nlet engine = ReteEngine::new([\n  ReteRule::new("risk_hold", "跨事实风控",\n    "order.amount>100000 && customer.is_new==true\n     && device.risk==high\n     && order.customer_id==customer.id",\n    "action=manual_review & order.status=hold", 10,\n    "三类事实关联才触发"),\n  ReteRule::new("risk_attach", "风控标签",\n    "order.customer_id==customer.id && device.risk==high",\n    "order.tags+=risk_device & customer.tags+=high_risk", 5,\n    "跨事实绑定命中即打标签"),\n])\n\n// 工作内存 + 增量传播\nlet wm = WorkingMemory::new()\nlet dev = Fact::make("device"); dev.set("risk", "high")\nlet cus = Fact::make("customer"); cus.set("is_new", "true"); cus.set("id", "c-1001")\nlet ord = Fact::make("order"); ord.set("amount", "150000"); ord.set("customer_id", "c-1001")\nengine.insert(wm, dev); engine.insert(wm, cus)\nengine.insert(wm, ord)\n\nengine.fire_all(wm)',
       output: ''
     },
-    rk: {
+    b: {
       rules:
-'// Risk review rules (same engine)\nlet engine = RuleEngine::new([\n  Rule::new("rk1", "Large new customer",\n    "amount>100000 && new_customer==true",\n    "action=manual_review", 10,\n    "Large + new = mandatory manual"),\n  Rule::new("rk2", "Large amount",\n    "amount>100000",\n    "action=enhanced_verify", 5,\n    "Large amount enhanced verify"),\n  Rule::new("rk3", "Small amount",\n    "amount<1000",\n    "action=auto_pass", 1,\n    "Small amount auto-pass"),\n])\n\n// Input fact\nlet fact = Fact::new()\nfact.set("amount", "150000")\nfact.set("new_customer", "true")\n\nengine.execute(fact)',
+'// 场景 B：工单路由——共享子条件（alpha 节点复用）\n// 两条规则共享 customer.vip==true，Rete 只编译一个 alpha 节点\nlet engine = ReteEngine::new([\n  ReteRule::new("vip_senior", "VIP工单进资深坐席",\n    "customer.vip==true && ticket.priority==high",\n    "ticket.route=senior_agent", 10,\n    "VIP + 高优先级"),\n  ReteRule::new("vip_sla", "VIP工单加急",\n    "customer.vip==true && ticket.priority==high",\n    "ticket.sla=15min", 8,\n    "共享 VIP 条件，仅动作不同"),\n])\n\nlet wm = WorkingMemory::new()\nlet vip = Fact::make("customer"); vip.set("vip", "true"); vip.set("id", "c-7")\nlet tick = Fact::make("ticket"); tick.set("priority", "high"); tick.set("customer_id", "c-7")\nengine.insert(wm, vip); engine.insert(wm, tick)\n\n// alpha_count=2：VIP 条件共享为 1 个节点，未重复编译\nengine.fire_all(wm)',
       output: ''
     },
-    tier: {
+    c: {
       rules:
-'// Customer tiering rules (same engine)\nlet engine = RuleEngine::new([\n  Rule::new("t1", "High value",\n    "intent~=high && region==east",\n    "tier=high_value", 10,\n    "High intent + East = high value"),\n  Rule::new("t2", "Growing",\n    "orders>=10",\n    "tier=growing", 5,\n    "10+ cumulative orders"),\n  Rule::new("t3", "Regular",\n    "tier==",\n    "tier=regular", 1,\n    "Fallback default tier"),\n])\n\n// Input fact\nlet fact = Fact::new()\nfact.set("intent", "high_value_lead")\nfact.set("region", "east")\nfact.set("orders", "12")\n\nengine.execute(fact)',
+'// 场景 C：库存促销——连锁激活\n// 下单→扣库存→低于阈值补货→（补货后不再触发）\nlet engine = ReteEngine::new([\n  ReteRule::new("stock_apply", "下单扣库存",\n    "order.status==placed && product.stock>=order.qty",\n    "product.stock-=order.qty & order.status=fulfilled", 10,\n    "订单成立即扣库存（动作引用其他事实字段）"),\n  ReteRule::new("stock_reorder", "低库存补货",\n    "product.stock<10",\n    "product.stock+=100 & action=reorder_triggered", 8,\n    "低于阈值自动补货"),\n])\n\nlet wm = WorkingMemory::new()\nlet prod = Fact::make("product"); prod.set("stock", "5")\nlet o1 = Fact::make("order"); o1.set("status", "placed"); o1.set("qty", "2")\nengine.insert(wm, prod); engine.insert(wm, o1)\n\n// 触发链: stock_apply → stock_reorder\nengine.fire_all(wm, limit=50)',
       output: ''
     }
   };
@@ -237,17 +201,17 @@ let result = RuleEngine::new(rules).execute(fact)
     tabs.forEach(function(t){
       t.addEventListener('click', function(){ showScene(t.dataset.scene); });
     });
-    showScene('cs');
+    showScene('a');
     fetch('moonup.wasm')
       .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.arrayBuffer(); })
       .then(function(bytes){ return WebAssembly.instantiate(bytes, {}, { builtins:['js-string'], importedStringConstants:'_' }); })
       .then(function(res){ return res.instance.exports; })
       .then(function(exports){
-        var raw = exports.moonup_demo_engine();
-        var parts = raw.split(/--- .* [AB]/);
-        SCENES.cs.output = parts[1] ? parts[1].trim() : '(no output)';
-        SCENES.rk.output = parts[2] ? parts[2].trim() : '(no output)';
-        SCENES.tier.output = '// Customer tiering is the third example.\n// Same Rule::new(id, label, condition, action, priority, note)\n//\n// Input: intent=high_value_lead, region=east, orders=12\n// Matched: t1 (intent~=high && region==east)\n// Output: tier=high_value\n//\n// Same @engine core, zero engine changes.';
+        var raw = exports.moonup_rete_demo();
+        var parts = raw.split('--- 场景');
+        SCENES.a.output = parts[1] ? '场景' + parts[1].trim() : '(no output)';
+        SCENES.b.output = parts[2] ? '场景' + parts[2].trim() : '(no output)';
+        SCENES.c.output = parts[3] ? '场景' + parts[3].trim() : '(no output)';
         var active = document.querySelector('.tab.active');
         if (active) showScene(active.dataset.scene);
       })
