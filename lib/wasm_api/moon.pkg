@@ -1,15 +1,15 @@
 pkgtype(kind: "foreign_library")
 
 import {
-  "mw1696803-hub/upward_mgmt_core/lib/rete",
-  "mw1696803-hub/upward_mgmt_core/lib/engine",
-  "mw1696803-hub/upward_mgmt_core/lib/ogsm",
-  "mw1696803-hub/upward_mgmt_core/lib/evidence",
-  "mw1696803-hub/upward_mgmt_core/lib/scenario",
-  "mw1696803-hub/upward_mgmt_core/lib/guardrail",
-  "mw1696803-hub/upward_mgmt_core/lib/hypothesis",
-  "mw1696803-hub/upward_mgmt_core/lib/case",
-  "mw1696803-hub/upward_mgmt_core/lib/output",
+  "mw1696803-hub/moonup/lib/rete",
+  "mw1696803-hub/moonup/lib/engine",
+  "mw1696803-hub/moonup/lib/ogsm",
+  "mw1696803-hub/moonup/lib/evidence",
+  "mw1696803-hub/moonup/lib/scenario",
+  "mw1696803-hub/moonup/lib/guardrail",
+  "mw1696803-hub/moonup/lib/hypothesis",
+  "mw1696803-hub/moonup/lib/case",
+  "mw1696803-hub/moonup/lib/output",
 }
 
 options(

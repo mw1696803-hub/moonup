@@ -116,6 +116,22 @@ moon test        # 单元测试
 moon build --release --target wasm-gc   # WASM 构建
 ```
 
+## 作为依赖安装（mooncakes.io）
+
+```bash
+moon add mw1696803-hub/moonup
+```
+
+然后在 `moon.pkg` 中引入：
+
+```toml
+import {
+  "mw1696803-hub/moonup/lib/rete",
+}
+```
+
+即可使用 `ReteEngine` / `WorkingMemory` / `ReteRule` / `FireResult`，把规则引擎嵌入你自己的 MoonBit 项目。
+
 ## 网页演示
 
 [MoonUp 交互演示页](docs/moonup-demo.html) — 左右分栏展示"规则代码 → 引擎真实输出"，三个领域 tab 共用同一 WASM 核心。
@@ -130,6 +146,7 @@ moon build --release --target wasm-gc   # WASM 构建
 | 04 本期实质新增 | ✅ | Rete 网络、工作内存、增量传播、冲突消解均为本期新增 |
 | 05 开源合规：许可证与参考来源 | ✅ | MIT；Rete 算法与 Drools 设计思想参考见「原创 / 参考」 |
 | 06 AI 可解释 | ✅ | 见「AI 使用说明」 |
+| 07 发布到 mooncakes.io | 🔜 登录后执行 `moon publish` | 包名 `mw1696803-hub/moonup`，元数据已就绪 |
 
 ## 原创 / 参考说明
 
