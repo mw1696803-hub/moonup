@@ -3,19 +3,15 @@ pkgtype(kind: "foreign_library")
 import {
   "mw1696803-hub/moonup/lib/rete",
   "mw1696803-hub/moonup/lib/engine",
-  "mw1696803-hub/moonup/lib/ogsm",
   "mw1696803-hub/moonup/lib/evidence",
-  "mw1696803-hub/moonup/lib/scenario",
   "mw1696803-hub/moonup/lib/guardrail",
-  "mw1696803-hub/moonup/lib/hypothesis",
   "mw1696803-hub/moonup/lib/case",
-  "mw1696803-hub/moonup/lib/output",
 }
 
 options(
   link: {
     "wasm-gc": {
-      "exports": ["moonup_run", "moonup_demo_engine", "moonup_rete_demo"],
+      "exports": ["moonup_demo_engine", "moonup_rete_demo"],
       "use-js-builtin-string": true,
       "imported-string-constants": "_",
     },

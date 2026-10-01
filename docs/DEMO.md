@@ -8,7 +8,7 @@
 git clone https://github.com/mw1696803-hub/moonup.git
 cd moonup
 moon install        # 拉取依赖（仅 MoonBit core，无第三方依赖）
-moon test           # 122 个单元测试（含 lib/rete 的 10 个 Rete 网络测试）
+moon test           # 87 个单元测试（含 lib/rete 的 10 个 Rete 网络测试）
 moon run main       # 端到端 Demo：跨事实风控 / 工单路由（共享 alpha）/ 库存连锁激活 + 可选组件
 moon build --release --target wasm-gc   # 构建浏览器 WASM（docs/moonup.wasm）
 ```
@@ -24,7 +24,7 @@ moon build --release --target wasm-gc   # 构建浏览器 WASM（docs/moonup.was
 ### 1. moon test
 
 ```
-Total tests: 122, passed: 122, failed: 0.
+Total tests: 87, passed: 87, failed: 0.
 ```
 
 ### 2. moon run main（真实 stdout，未删改）
@@ -54,7 +54,7 @@ Total tests: 122, passed: 122, failed: 0.
 
 [1] Evidence 证据分级（可选组件，与引擎解耦）
   置信度: High | 证据 4 条，整体置信度高；存在高权重证据（书面/资源/结果/重复行为），结论可靠
-  缺失信息: 晋升评估标准, 预算审批人
+  缺失信息: SLA 违约认定标准, 审批负责人
   ↑ 任何需要证据分级的决策过程都可复用（风控举证、审核材料、绩效评估等）
 
 [2] Guardrail 决策偏见护栏（可选组件，与引擎解耦）
@@ -72,7 +72,7 @@ Total tests: 122, passed: 122, failed: 0.
   ↑ 防的是决策偏见本身（转述放大/措辞矛盾/仅凭感觉），不绑定任何业务场景
 
 [3] Case 案例库（可选组件，与引擎解耦）
-  命中 2 条内置示例案例
+  命中 2 条内置示例案例（演示数据，机制可接任意领域）
     · c-promotion [口头承诺转为书面条件，按时间线验证兑现]
     · c-multi-leader [多领导冲突先对齐再执行：让领导当面确认优先级排序]
   落盘 round-trip: JSON 2330 字符 → 恢复 6 条
@@ -86,9 +86,9 @@ Total tests: 122, passed: 122, failed: 0.
 | [0A] | rete | 跨事实风控：order × customer × device 三类事实变量绑定 join，命中后动作修改事实（status=hold + 标签累积） |
 | [0B] | rete | 工单路由：两条规则共享 `customer.vip==true` 子条件，Rete 只编译一个 alpha 节点（alpha 数 = 2 而非 3） |
 | [0C] | rete | 库存连锁激活：下单→扣库存→低库存补货→补货后不再触发（增量传播 + fire limit + 幂等保护） |
-| [1] | evidence | 证据分级（书面/资源/口头/猜测）+ 置信度合成 + 缺失信息清单（可选组件，与引擎解耦） |
+| [1] | evidence | 证据分级（书面/资源/口头/猜测）+ 置信度合成 + 缺失信息清单（可选组件，与引擎解耦，示例数据为演示用） |
 | [2] | guardrail | 决策偏见护栏（转述放大/措辞矛盾/仅凭感觉等），不绑定业务场景 |
-| [3] | case | 案例库落盘 round-trip + 命中计数/反馈闭环机制（与领域无关） |
+| [3] | case | 案例库落盘 round-trip + 命中计数/反馈闭环机制（与领域无关，内置案例为演示数据） |
 
 ## 验证说明
 

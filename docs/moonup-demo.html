@@ -67,7 +67,7 @@
     <h1>MoonUp Rete</h1>
     <p class="sub">MoonBit 原生<b>产生式规则引擎（Rete 网络）</b>。规则编译为 alpha / beta / terminal 节点网络：<b>工作内存</b>维护有状态事实集合，事实 insert / update / retract 只沿网络<b>增量传播</b>，支持<b>跨事实变量绑定 join</b> 与<b>连锁激活</b>；冲突消解按 salience → specificity → recency 确定性排序。同一规则集 + 同一事实流恒得到同一结果——可测试、可审计、无 LLM 幻觉。CLI / 服务端 / WASM 浏览器均可嵌入。</p>
     <div class="badges">
-      <div class="badge"><b>122</b>unit tests</div>
+      <div class="badge"><b>87</b>unit tests</div>
       <div class="badge"><b>0</b>external deps</div>
       <div class="badge"><b>Rete</b>network core</div>
       <div class="badge"><b>WASM</b>runs in browser</div>
@@ -138,7 +138,7 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
     </div>
     <div class="cap">
       <h4>可审计、可测试</h4>
-      <p>每次触发返回规则 id、事实组合与动作轨迹；每条规则可独立断言。122 个单元测试覆盖 join、共享节点、冲突消解、连锁与边界解析。</p>
+      <p>每次触发返回规则 id、事实组合与动作轨迹；每条规则可独立断言。87 个单元测试覆盖 join、共享节点、冲突消解、连锁与边界解析。</p>
     </div>
   </div>
 
@@ -154,7 +154,7 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
   动作 DSL：= / += / -=，支持跨事实引用值
   触发轨迹 trace（可审计）
   WASM 导出，浏览器本地运行
-  122 个单元测试，CI 通过
+  87 个单元测试，CI 通过
 
 <span class="cm">// Roadmap（未实现，不作承诺）</span>
   || / ! / 括号嵌套逻辑
@@ -165,7 +165,7 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
   </div>
 
   <div class="foot">
-    <div>本页运行 <code>moonup.wasm</code>（由 MoonBit 核心库编译）于浏览器本地执行。复现：<code>git clone https://github.com/mw1696803-hub/moonup</code> → <code>moon test</code>（122 passed）→ <code>moon run main</code> → <code>moon build --release --target wasm-gc</code>。</div>
+    <div>本页运行 <code>moonup.wasm</code>（由 MoonBit 核心库编译）于浏览器本地执行。复现：<code>git clone https://github.com/mw1696803-hub/moonup</code> → <code>moon test</code>（87 passed）→ <code>moon run main</code> → <code>moon build --release --target wasm-gc</code>。</div>
     <div style="margin-top:6px">2026 MoonBit Hackathon - October edition - MIT License - 参考 Rete 算法（Forgy 1974）</div>
   </div>
 </div>

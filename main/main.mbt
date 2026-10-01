@@ -152,12 +152,12 @@ fn main {
   println("\n[1] Evidence 证据分级（可选组件，与引擎解耦）")
   let ev = @evidence.EvidenceEngine::new()
   let items = [
-    @evidence.EvidenceItem::new(@evidence.WrittenCommitment, "邮件确认了项目范围"),
-    @evidence.EvidenceItem::new(@evidence.ResourceAllocation, "给了预算但没给人力"),
-    @evidence.EvidenceItem::new(@evidence.SingleOralPromise, "会上口头说'会考虑晋升'"),
-    @evidence.EvidenceItem::new(@evidence.UserGuess, "我感觉他在故意拖延"),
+    @evidence.EvidenceItem::new(@evidence.WrittenCommitment, "合同载明 48 小时响应 SLA"),
+    @evidence.EvidenceItem::new(@evidence.ResourceAllocation, "已分配专属支持团队"),
+    @evidence.EvidenceItem::new(@evidence.SingleOralPromise, "电话中口头承诺当天下班前修复"),
+    @evidence.EvidenceItem::new(@evidence.UserGuess, "用户猜测是系统故障"),
   ]
-  let ea = ev.assess(items, ["晋升评估标准", "预算审批人"])
+  let ea = ev.assess(items, ["SLA 违约认定标准", "审批负责人"])
   println("  置信度: " + ea.confidence.to_string() + " | " + ea.summary)
   println("  缺失信息: " + join(ea.missing))
   println("  ↑ 任何需要证据分级的决策过程都可复用（风控举证、审核材料、绩效评估等）")
@@ -185,7 +185,7 @@ fn main {
   println("\n[3] Case 案例库（可选组件，与引擎解耦）")
   let cl = @case.CaseLibrary::new()
   let cr = cl.search(["promotion", "multi-leader"])
-  println("  命中 " + cr.total.to_string() + " 条内置示例案例")
+  println("  命中 " + cr.total.to_string() + " 条内置示例案例（演示数据，机制可接任意领域）")
   for m in cr.matches {
     println("    · " + m.card.id + " [" + m.card.principle + "]")
   }

@@ -106,7 +106,7 @@ Rule("stock", "stock.level<10 && stock.restock==false", "stock.restock=true & ac
 |---|---|
 | `rete` | Rete 网络编译、工作内存、增量传播、冲突消解、动作执行（本仓库核心） |
 | `engine` | 线性匹配模式（规则量小时简单路径，保留） |
-| `evidence` / `guardrail` / `hypothesis` / `scenario` / `case` / `ogsm` / `output` | 可选决策组件（建立在引擎之上，按需引入） |
+| `evidence` / `guardrail` / `case` | 可选决策组件（建立在引擎之上、与引擎解耦，按需引入） |
 
 ## 快速开始
 
