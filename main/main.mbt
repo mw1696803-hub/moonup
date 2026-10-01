@@ -1,7 +1,7 @@
 ﻿/// MoonUp Rete — MoonBit 产生式规则引擎（CLI Demo）
 ///
 /// 主叙事：Rete 网络 + 工作内存 + 跨事实关联 + 连锁激活。
-/// [0] 三个不同领域的跨事实场景，共用同一个 @rete 核心；
+/// [0] 四个不同领域的跨事实场景，共用同一个 @rete 核心；
 /// [1]-[3] 可选决策组件（evidence / guardrail / case）以通用口径展示。
 fn main {
   println("=== MoonUp Rete: MoonBit 产生式规则引擎（Rete 网络）===")
@@ -145,6 +145,67 @@ fn main {
     n = n + 1
   }
   println("    ↑ 动作修改事实会触发增量传播与连锁激活，fire limit 防止无限循环")
+
+  // ---------------------------------------------------------------
+  // [0] 场景 D：OR / NOT 复合条件（DSL 增强）
+  // ---------------------------------------------------------------
+  println("\n[0D] 复合条件：OR 组 || 与否定 !（DSL 增强）")
+  println("    规则1 (OR) : (customer.level==VIP && ticket.type==refund) || order.amount>100000")
+  println("    规则2 (NOT): order.status==placed && !customer.blacklist==true")
+  let dl_rules : Array[@rete.ReteRule] = [
+    @rete.ReteRule::new(
+      "or_rule",
+      "VIP退款或大额订单",
+      "(customer.level==VIP && ticket.type==refund) || order.amount>100000",
+      "action=manual_review",
+      10,
+      "OR 组语义：任一组满足即触发",
+    ),
+    @rete.ReteRule::new(
+      "not_rule",
+      "下单且非黑名单",
+      "order.status==placed && !customer.blacklist==true",
+      "action=auto_approve",
+      8,
+      "NOT 语义：工作内存中不存在黑名单客户才触发",
+    ),
+  ]
+  let dl_eng = @rete.ReteEngine::new(dl_rules)
+  // OR 组 1：VIP + 退款
+  let dl_wm1 = @rete.WorkingMemory::new()
+  let dl_c = @rete.Fact::make("customer")
+  dl_c.set("level", "VIP")
+  let dl_t = @rete.Fact::make("ticket")
+  dl_t.set("type", "refund")
+  dl_eng.insert(dl_wm1, dl_c)
+  dl_eng.insert(dl_wm1, dl_t)
+  let dl_r1 = dl_eng.fire_all(dl_wm1)
+  println("    VIP+退款工单 → 触发: " + join(dl_r1.fired))
+  // OR 组 2：大额订单（无 VIP）
+  let dl_wm2 = @rete.WorkingMemory::new()
+  let dl_o = @rete.Fact::make("order")
+  dl_o.set("amount", "150000")
+  dl_eng.insert(dl_wm2, dl_o)
+  let dl_r2 = dl_eng.fire_all(dl_wm2)
+  println("    15 万订单（无 VIP）→ 触发: " + join(dl_r2.fired))
+  // NOT：无黑名单客户 → 触发
+  let dl_wm3 = @rete.WorkingMemory::new()
+  let dl_o2 = @rete.Fact::make("order")
+  dl_o2.set("status", "placed")
+  dl_eng.insert(dl_wm3, dl_o2)
+  let dl_r3 = dl_eng.fire_all(dl_wm3)
+  println("    placed 订单（无客户）→ 触发: " + join(dl_r3.fired))
+  // NOT 拦截：黑名单客户存在 → 不触发
+  let dl_wm4 = @rete.WorkingMemory::new()
+  let dl_b = @rete.Fact::make("customer")
+  dl_b.set("blacklist", "true")
+  let dl_o3 = @rete.Fact::make("order")
+  dl_o3.set("status", "placed")
+  dl_eng.insert(dl_wm4, dl_b)
+  dl_eng.insert(dl_wm4, dl_o3)
+  let dl_r4 = dl_eng.fire_all(dl_wm4)
+  println("    placed 订单 + 黑名单客户 → 触发: " + join(dl_r4.fired) + "（NOT 拦截）")
+  println("    ↑ || 组与 ! 否定在同一引擎编译执行：规则即数据，复合条件无需改引擎")
 
   // ---------------------------------------------------------------
   // [1] 可选决策组件：Evidence 证据分级（通用口径）

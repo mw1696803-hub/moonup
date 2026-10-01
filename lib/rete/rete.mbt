@@ -11,13 +11,23 @@
 /// - 冲突消解：salience（规则优先级）→ specificity（条件数）→ recency（事实新近度）→ rule id
 /// - match-select-act 循环：触发动作 → 修改事实 → 连锁激活（fire limit 上限）
 ///
-/// 条件 DSL（多条用 && 连接）：
+/// 条件 DSL：
+///   多条原子条件用 && 连接（与），多组用 || 连接（或，任一组全部满足即匹配）
 ///   pattern.field==value     等于（value 为字面量）
 ///   pattern.field!=value     不等于
 ///   pattern.field~=value     包含子串
 ///   pattern.field>n         数字大于（严格整数）
 ///   pattern.field<n / >= / <=
 ///   patternA.fieldA==patternB.fieldB   跨事实变量绑定 join
+///   !pattern.field==value    否定：工作内存中不存在满足该条件的事实
+///   示例：(customer.vip==true && ticket.priority==high) || order.amount>100000
+///
+/// 语义约定：
+///   - || 组之间是"或"，任一组内全部原子条件满足即规则匹配；
+///   - OR 必须位于顶层（整条条件 = 若干 OR 组，组可用括号包裹）；
+///     不支持 OR 内嵌于 AND 中（如 a && (b || c)）与括号嵌套；
+///   - ! 否定扫描工作内存全集（非网络 token），且须与至少一个正条件搭配；
+///   - 暂不支持跨事实引用的否定（neg 仅用于字面量/类型条件）。
 ///
 /// 动作 DSL（多条用 & 连接）：
 ///   pattern.field=value      修改/插入事实字段（触发增量传播）
@@ -131,13 +141,15 @@ pub struct Pattern {
   value : String       // 字面量（引用时为 ""）
   ref_type : String    // 跨事实引用：被引用事实类型（非引用时为 ""）
   ref_field : String   // 跨事实引用：被引用字段名
+  neg : Bool           // 否定条件（! 前缀）：工作内存中不存在满足该条件的事实
 }
 
 /// 产生式规则
 pub struct ReteRule {
   id : String
   label : String
-  patterns : Array[Pattern]
+  patterns : Array[Pattern]        // 展平原子条件（网络编译 + specificity 计数）
+  groups : Array[Array[Pattern]]   // OR 组：任一组内全部原子条件满足即规则匹配
   action : String
   priority : Int   // salience
   note : String
@@ -152,33 +164,60 @@ pub fn ReteRule::new(
   priority : Int,
   note : String,
 ) -> ReteRule {
+  let (groups, flat) = parse_condition(condition)
   {
     id,
     label,
-    patterns: parse_condition(condition),
+    patterns: flat,
+    groups,
     action,
     priority,
     note,
   }
 }
 
-/// 条件字符串 → 原子条件数组
-fn parse_condition(cond : String) -> Array[Pattern] {
-  let out : Array[Pattern] = []
-  for part in cond.split("&&") {
-    out.push(parse_pattern(part.trim().to_owned()))
+/// 条件字符串 → (OR 组数组, 展平原子条件数组)
+/// 语义：先按 || 拆组（或），组内按 && 拆（与）；组可用括号包裹，解析时剥离。
+/// 限制：OR 必须位于顶层（整条条件 = 若干 OR 组），不支持 OR 内嵌于 AND 中。
+fn parse_condition(cond : String) -> (Array[Array[Pattern]], Array[Pattern]) {
+  let groups : Array[Array[Pattern]] = []
+  let flat : Array[Pattern] = []
+  for grp in cond.split("||") {
+    let mut gs = grp.trim().to_owned()
+    // 剥离包裹整个 OR 组的一对括号：(a==1 && b==2) → a==1 && b==2
+    if gs.length() >= 2 && gs[0] == '(' && gs[gs.length() - 1] == ')' {
+      gs = gs[1:gs.length() - 1].to_owned()
+    }
+    let g : Array[Pattern] = []
+    for part in gs.split("&&") {
+      let mut ps = part.trim().to_owned()
+      // 原子级括号剥离（防御性，通常无）
+      if ps.length() >= 2 && ps[0] == '(' && ps[ps.length() - 1] == ')' {
+        ps = ps[1:ps.length() - 1].to_owned()
+      }
+      let pp = parse_pattern(ps)
+      g.push(pp)
+      flat.push(pp)
+    }
+    groups.push(g)
   }
-  out
+  (groups, flat)
 }
 
-/// 解析单个原子条件：pattern.field op value
+/// 解析单个原子条件：pattern.field op value；支持 ! 前缀（否定）
 fn parse_pattern(raw : String) -> Pattern {
+  let mut neg = false
+  let mut src = raw
+  if raw.length() > 0 && raw[0] == '!' {
+    neg = true
+    src = raw[1:].to_owned()
+  }
   let mut name = ""
-  let mut rest = raw
-  let dot = first_index_of(raw, '.')
+  let mut rest = src
+  let dot = first_index_of(src, '.')
   if dot >= 0 {
-    name = raw[:dot].to_owned()
-    rest = raw[dot + 1:].to_owned()
+    name = src[:dot].to_owned()
+    rest = src[dot + 1:].to_owned()
   }
   let ops : Array[String] = [">=", "<=", "==", "!=", "~=", ">", "<"]
   let mut field = ""
@@ -203,7 +242,7 @@ fn parse_pattern(raw : String) -> Pattern {
       value = ""
     }
   }
-  { name, field, op, value, ref_type, ref_field }
+  { name, field, op, value, ref_type, ref_field, neg }
 }
 
 /// 找到字符串中 target 字符的首次位置；不存在返回 -1
@@ -297,7 +336,6 @@ struct Token {
 struct TerminalNode {
   rule : ReteRule
   agenda : Array[Token]
-  constraints : Array[Pattern]   // 跨事实绑定约束（在 terminal 校验）
 }
 
 /// 传播消息
@@ -322,38 +360,47 @@ pub fn ReteEngine::new(rules : Array[ReteRule]) -> ReteEngine {
   let terminals : Array[TerminalNode] = []
 
   for r in rules {
-    // 1. 分离字面量条件与跨事实约束条件；
-    //    约束条件拆成 own 侧 / ref 侧两个 type-only alpha 参与网络 join，
-    //    完整绑定校验仍保留在 terminal（check_constraints）
-    let alpha_seq : Array[Pattern] = []
-    let cons : Array[Pattern] = []
-    for p in r.patterns {
-      if p.ref_type != "" {
-        cons.push(p)
-        alpha_seq.push(type_only(p.name))
-        alpha_seq.push(type_only(p.ref_type))
-      } else {
-        alpha_seq.push(p)
-      }
-    }
-    let n = alpha_seq.length()
-    // 2. 为每个网络条件找/建 alpha
-    let alpha_idx : Array[Int] = []
-    for p in alpha_seq {
-      alpha_idx.push(find_or_create_alpha(alphas, p))
-    }
-    // 3. 串 beta 链（n-1 个 beta）
-    let mut pos = 1
-    while pos < n {
-      let right_ref : NodeRef = NodeRef::Alpha(alpha_idx[pos])
-      betas.push({ right: right_ref, mem: [], down_betas: [], down_terms: [] })
-      pos = pos + 1
-    }
-    // 4. terminal
-    terminals.push({ rule: r, agenda: [], constraints: cons })
+    // 先建好 terminal，规则的所有 OR 组链汇聚到同一个 terminal
+    terminals.push({ rule: r, agenda: [] })
     let t_idx = terminals.length() - 1
-    // 5. 建 downlinks
-    link_chain(alphas, betas, r, alpha_idx, t_idx)
+    for g in r.groups {
+      // 每组独立建一条 alpha/beta 链（OR 语义下各组互不依赖；
+      // alpha 节点仍跨组跨规则共享）
+      let alpha_seq : Array[Pattern] = []
+      for p in g {
+        // 否定条件不建网络节点：terminal 判定时扫描工作内存全集
+        // （工作内存中不存在满足条件的事实 → 满足）
+        if p.neg {
+          continue
+        }
+        if p.ref_type != "" {
+          // 跨事实引用：own 侧 + ref 侧各一个 type-only alpha 参与 join，
+          // 完整绑定在 terminal 校验
+          alpha_seq.push(type_only(p.name))
+          alpha_seq.push(type_only(p.ref_type))
+        } else {
+          alpha_seq.push(p)
+        }
+      }
+      if alpha_seq.length() == 0 {
+        // 全否定组：无网络入口，该组永不触发（neg 语义需配合正条件使用）
+        continue
+      }
+      let alpha_idx : Array[Int] = []
+      for p in alpha_seq {
+        alpha_idx.push(find_or_create_alpha(alphas, p))
+      }
+      let n = alpha_seq.length()
+      // 串 beta 链（n-1 个 beta）
+      let mut pos = 1
+      while pos < n {
+        let right_ref : NodeRef = NodeRef::Alpha(alpha_idx[pos])
+        betas.push({ right: right_ref, mem: [], down_betas: [], down_terms: [] })
+        pos = pos + 1
+      }
+      // 建 downlinks（组链 → 本规则的 terminal）
+      link_chain(alphas, betas, alpha_idx, t_idx)
+    }
   }
 
   { alphas, betas, terminals }
@@ -361,7 +408,7 @@ pub fn ReteEngine::new(rules : Array[ReteRule]) -> ReteEngine {
 
 /// 仅按类型匹配的原子条件（@kind 特殊字段）
 fn type_only(t : String) -> Pattern {
-  { name: t, field: "@kind", op: "==", value: t, ref_type: "", ref_field: "" }
+  { name: t, field: "@kind", op: "==", value: t, ref_type: "", ref_field: "", neg: false }
 }
 
 /// alpha 节点数量（用于验证共享子条件合并）
@@ -383,7 +430,6 @@ pub fn ReteEngine::terminal_count(self : ReteEngine) -> Int {
 fn link_chain(
   alphas : Array[AlphaNode],
   betas : Array[BetaNode],
-  rule : ReteRule,
   alpha_idx : Array[Int],
   t_idx : Int,
 ) -> Unit {
@@ -658,50 +704,99 @@ fn propagate_beta(eng : ReteEngine, wm : WorkingMemory, b_idx : Int, msg : Msg) 
   }
 }
 
-/// 跨事实约束检查：token 中 own 类型事实的字段 == ref 类型事实的字段
+/// 跨事实引用单条件匹配：token 中 own 类型事实字段 == ref 类型事实字段
 /// （pattern 引用条件形如：order.customer_id==customer.id，
 ///   其中 name/field 为 own 侧，ref_type/ref_field 为被引用侧）
-fn check_constraints(cons : Array[Pattern], tok : Token, wm : WorkingMemory) -> Bool {
-  for c in cons {
-    let mut found_own : Fact? = None
-    let mut found_ref : Fact? = None
-    for fid in tok.facts {
-      match wm.get(fid) {
-        Some(f) => {
-          if f.kind == c.name {
-            found_own = Some(f)
-          }
-          if f.kind == c.ref_type {
-            found_ref = Some(f)
-          }
+fn cross_ref_match(c : Pattern, tok : Token, wm : WorkingMemory) -> Bool {
+  let mut found_own : Fact? = None
+  let mut found_ref : Fact? = None
+  for fid in tok.facts {
+    match wm.get(fid) {
+      Some(f) => {
+        if f.kind == c.name {
+          found_own = Some(f)
         }
-        None => ()
+        if f.kind == c.ref_type {
+          found_ref = Some(f)
+        }
+      }
+      None => ()
+    }
+  }
+  let own = match found_own {
+    Some(f) => f
+    None => return false
+  }
+  let ref_ = match found_ref {
+    Some(f) => f
+    None => return false
+  }
+  // 按操作符语义比较（数值条件走严格整数比较）
+  match c.op {
+    "==" => own.get(c.field) == ref_.get(c.ref_field)
+    "!=" => own.get(c.field) != ref_.get(c.ref_field)
+    "~=" => own.get(c.field).contains(ref_.get(c.ref_field))
+    ">" => compare_num(own.get(c.field), ref_.get(c.ref_field), true, false)
+    "<" => compare_num(own.get(c.field), ref_.get(c.ref_field), false, false)
+    ">=" => compare_num(own.get(c.field), ref_.get(c.ref_field), true, true)
+    "<=" => compare_num(own.get(c.field), ref_.get(c.ref_field), false, true)
+    _ => false
+  }
+}
+
+/// 单原子条件匹配（字面量 / 类型 / 跨事实引用），支持 neg 取反。
+/// 否定语义：工作内存中不存在满足该原子条件的事实 → 满足。
+/// 否定条件不建网络节点，判定时直接扫描工作内存全集（非 token）。
+fn atom_match(p : Pattern, tok : Token, wm : WorkingMemory) -> Bool {
+  if p.neg {
+    let mut found = false
+    for (_, f) in wm.facts {
+      if f.kind == p.name && alpha_match(p, f) {
+        found = true
+        break
       }
     }
-    let own = match found_own {
-      Some(f) => f
-      None => return false
+    return !found
+  }
+  if p.ref_type != "" {
+    return cross_ref_match(p, tok, wm)
+  }
+  // 正字面量/类型条件：token 中存在满足 alpha_match 的事实
+  let mut found = false
+  for fid in tok.facts {
+    match wm.get(fid) {
+      Some(f) => {
+        if alpha_match(p, f) {
+          found = true
+          break
+        }
+      }
+      None => ()
     }
-    let ref_ = match found_ref {
-      Some(f) => f
-      None => return false
-    }
-    // 按操作符语义比较（数值条件走严格整数比较）
-    let ok = match c.op {
-      "==" => own.get(c.field) == ref_.get(c.ref_field)
-      "!=" => own.get(c.field) != ref_.get(c.ref_field)
-      "~=" => own.get(c.field).contains(ref_.get(c.ref_field))
-      ">" => compare_num(own.get(c.field), ref_.get(c.ref_field), true, false)
-      "<" => compare_num(own.get(c.field), ref_.get(c.ref_field), false, false)
-      ">=" => compare_num(own.get(c.field), ref_.get(c.ref_field), true, true)
-      "<=" => compare_num(own.get(c.field), ref_.get(c.ref_field), false, true)
-      _ => false
-    }
-    if !ok {
+  }
+  found
+}
+
+/// AND 组匹配：组内全部原子条件满足
+fn group_match(g : Array[Pattern], tok : Token, wm : WorkingMemory) -> Bool {
+  for p in g {
+    if !atom_match(p, tok, wm) {
       return false
     }
   }
   true
+}
+
+/// 规则条件整体判定（OR 语义）：任一组成立即满足。
+/// 网络层只负责把可能相关的事实组合传播到 terminal，
+/// 最终是否命中在此处确定性判定（含 neg、跨事实引用）。
+fn rule_condition_holds(rule : ReteRule, tok : Token, wm : WorkingMemory) -> Bool {
+  for g in rule.groups {
+    if group_match(g, tok, wm) {
+      return true
+    }
+  }
+  false
 }
 
 // ============================== 冲突消解与执行 ==============================
@@ -749,8 +844,9 @@ fn collect_activations(eng : ReteEngine, wm : WorkingMemory) -> Array[Activation
   while t < eng.terminals.length() {
     let term = eng.terminals[t]
     for tok in term.agenda {
-      // 跨事实约束校验：不满足约束的 token 不进入激活
-      if !check_constraints(term.constraints, tok, wm) {
+      // 规则条件整体判定（OR 组语义，含 neg 与跨事实引用）：
+      // 不满足条件的 token 不进入激活
+      if !rule_condition_holds(term.rule, tok, wm) {
         continue
       }
       let mut max_rec = 0

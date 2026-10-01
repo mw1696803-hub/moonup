@@ -30,6 +30,20 @@ Rete 网络
 动作执行 → 修改事实 → 连锁激活（match-select-act 循环，fire limit 上限）
 ```
 
+## 条件 DSL
+
+原子条件：`pattern.field==value`（等于）/ `!=`（不等于）/ `~=`（包含）/ `>` `<` `>=` `<=`（严格整数比较）；多条用 `&&` 连接（与）；`||` 连接 OR 组（或，任一组内全部原子条件满足即匹配，组可用括号包裹，必须位于顶层）；`!` 前缀为否定（工作内存中不存在满足该条件的事实才满足，须与至少一个正条件搭配）。跨事实引用形如 `order.customer_id==customer.id`（变量绑定 join）。
+
+```moonbit
+// OR：VIP 退款 或 大额订单，任一成立即触发
+Rule("or_demo", "(customer.level==VIP && ticket.type==refund) || order.amount>100000",
+     "action=manual_review", 10, "OR 组语义")
+
+// NOT：下单且客户不在黑名单才自动放行（黑名单事实存在即拦截）
+Rule("not_demo", "order.status==placed && !customer.blacklist==true",
+     "action=auto_approve", 8, "否定语义")
+```
+
 ## 最小示例
 
 ```moonbit
@@ -68,7 +82,7 @@ let result = engine.execute(wm)
 | 增量 | 每次全量求值 | 增量传播，只重算受影响分支 |
 | 执行 | 只判断，不改数据 | 动作修改事实 → 连锁激活 |
 
-## 三个领域示例（同一引擎）
+## 四个领域示例（同一引擎）
 
 ```moonbit
 // 实时风控：跨三类事实关联
@@ -80,6 +94,10 @@ Rule("r2", "customer.level==VIP && ticket.type==refund", "route=refund_queue", 5
 
 // 库存联动：下单 → 扣库存 → 触发补货 → 连锁激活
 Rule("stock", "stock.level<10 && stock.restock==false", "stock.restock=true & action=order_restock", 6, "低于阈值自动补货")
+
+// 复合条件：OR 组（VIP 退款或大额订单）与 NOT 否定（非黑名单才放行）
+Rule("or_demo", "(customer.level==VIP && ticket.type==refund) || order.amount>100000", "action=manual_review", 10, "任一组满足即触发")
+Rule("not_demo", "order.status==placed && !customer.blacklist==true", "action=auto_approve", 8, "黑名单存在即拦截")
 ```
 
 ## 当前能力 vs 路线图
@@ -96,7 +114,9 @@ Rule("stock", "stock.level<10 && stock.restock==false", "stock.restock=true & ac
 | 触发轨迹记录 | ✅ | 命中规则、顺序、字段变更，可审计 |
 | WASM 导出 | ✅ | 浏览器本地运行 |
 | 线性匹配模式 | ✅ | 规则量小时简单路径 |
-| `\|\|` / `!` / 括号嵌套 DSL | 🔜 路线图 | |
+| `\|\|` OR 组（顶层，组可括号包裹） | ✅ | 任一组成立即匹配；每组独立编译网络、共享 terminal |
+| `!` 否定条件 | ✅ | 工作内存中不存在满足条件的事实才满足（扫描全集） |
+| 括号嵌套（OR 内嵌于 AND，如 `a && (b \|\| c)`） | 🔜 路线图 | 需表达式树解析 |
 | JSON/配置文件加载规则 | 🔜 路线图 | 当前 MoonBit API 注入 |
 | 大规模规则集性能基准 | 🔜 路线图 | 定位几十到几百条规则 |
 
@@ -104,7 +124,7 @@ Rule("stock", "stock.level<10 && stock.restock==false", "stock.restock=true & ac
 
 | 模块 | 能力 |
 |---|---|
-| `rete` | Rete 网络编译、工作内存、增量传播、冲突消解、动作执行（本仓库核心） |
+| `rete` | Rete 网络编译、工作内存、增量传播、冲突消解、动作执行、OR/NOT 复合条件 DSL（本仓库核心） |
 | `engine` | 线性匹配模式（规则量小时简单路径，保留） |
 | `evidence` / `guardrail` / `case` | 可选决策组件（建立在引擎之上、与引擎解耦，按需引入） |
 

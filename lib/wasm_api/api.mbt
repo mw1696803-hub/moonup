@@ -207,6 +207,65 @@ pub fn rete_demo() -> String {
       out = out + "  " + t + "\n"
     }
   }
+  out = out + "\n"
+
+  // --- 场景 D：OR / NOT 复合条件（DSL 增强） ---
+  out = out + "--- 场景 D：OR / NOT 复合条件（DSL 增强）---\n"
+  out = out + "规则1 (OR) : (customer.level==VIP && ticket.type==refund) || order.amount>100000\n"
+  out = out + "规则2 (NOT): order.status==placed && !customer.blacklist==true\n"
+  let dl_rules : Array[@rete.ReteRule] = [
+    @rete.ReteRule::new(
+      "or_rule",
+      "VIP退款或大额订单",
+      "(customer.level==VIP && ticket.type==refund) || order.amount>100000",
+      "action=manual_review",
+      10,
+      "OR 组语义：任一组满足即触发",
+    ),
+    @rete.ReteRule::new(
+      "not_rule",
+      "下单且非黑名单",
+      "order.status==placed && !customer.blacklist==true",
+      "action=auto_approve",
+      8,
+      "NOT 语义：工作内存中不存在黑名单客户才触发",
+    ),
+  ]
+  let dl_eng = @rete.ReteEngine::new(dl_rules)
+  // OR 组 1 命中：VIP + refund
+  let dl_wm1 = @rete.WorkingMemory::new()
+  let dl_c = @rete.Fact::make("customer")
+  dl_c.set("level", "VIP")
+  let dl_t = @rete.Fact::make("ticket")
+  dl_t.set("type", "refund")
+  dl_eng.insert(dl_wm1, dl_c)
+  dl_eng.insert(dl_wm1, dl_t)
+  let dl_r1 = dl_eng.fire_all(dl_wm1)
+  out = out + "  输入 VIP+退款工单 → 触发: " + join_names(dl_r1.fired) + "\n"
+  // OR 组 2 命中：大额订单（无 VIP 客户）
+  let dl_wm2 = @rete.WorkingMemory::new()
+  let dl_o = @rete.Fact::make("order")
+  dl_o.set("amount", "150000")
+  dl_eng.insert(dl_wm2, dl_o)
+  let dl_r2 = dl_eng.fire_all(dl_wm2)
+  out = out + "  输入 15 万订单（无 VIP）→ 触发: " + join_names(dl_r2.fired) + "\n"
+  // NOT：无黑名单客户 → 命中
+  let dl_wm3 = @rete.WorkingMemory::new()
+  let dl_o2 = @rete.Fact::make("order")
+  dl_o2.set("status", "placed")
+  dl_eng.insert(dl_wm3, dl_o2)
+  let dl_r3 = dl_eng.fire_all(dl_wm3)
+  out = out + "  输入 placed 订单（无客户）→ 触发: " + join_names(dl_r3.fired) + "\n"
+  // NOT：黑名单客户存在 → 不命中
+  let dl_wm4 = @rete.WorkingMemory::new()
+  let dl_b = @rete.Fact::make("customer")
+  dl_b.set("blacklist", "true")
+  let dl_o3 = @rete.Fact::make("order")
+  dl_o3.set("status", "placed")
+  dl_eng.insert(dl_wm4, dl_b)
+  dl_eng.insert(dl_wm4, dl_o3)
+  let dl_r4 = dl_eng.fire_all(dl_wm4)
+  out = out + "  输入 placed 订单 + 黑名单客户 → 触发: " + join_names(dl_r4.fired) + "（NOT 拦截）\n"
   out = out + "\n↑ 同一引擎零修改承载三个领域：规则即数据，引擎与业务语义解耦。"
   out
 }

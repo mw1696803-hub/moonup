@@ -8,8 +8,8 @@
 git clone https://github.com/mw1696803-hub/moonup.git
 cd moonup
 moon install        # 拉取依赖（仅 MoonBit core，无第三方依赖）
-moon test           # 87 个单元测试（含 lib/rete 的 10 个 Rete 网络测试）
-moon run main       # 端到端 Demo：跨事实风控 / 工单路由（共享 alpha）/ 库存连锁激活 + 可选组件
+moon test           # 91 个单元测试（含 lib/rete 的 15 个 Rete 网络测试）
+moon run main       # 端到端 Demo：跨事实风控 / 工单路由（共享 alpha）/ 库存连锁 / OR·NOT 复合条件 + 可选组件
 moon build --release --target wasm-gc   # 构建浏览器 WASM（docs/moonup.wasm）
 ```
 
@@ -24,7 +24,7 @@ moon build --release --target wasm-gc   # 构建浏览器 WASM（docs/moonup.was
 ### 1. moon test
 
 ```
-Total tests: 87, passed: 87, failed: 0.
+Total tests: 91, passed: 91, failed: 0.
 ```
 
 ### 2. moon run main（真实 stdout，未删改）
@@ -51,6 +51,15 @@ Total tests: 87, passed: 87, failed: 0.
       rule=stock_apply facts=[2,1,2] action=product.stock-=order.qty & order.status=fulfilled
       rule=stock_reorder facts=[3] action=product.stock+=100 & action=reorder_triggered
     ↑ 动作修改事实会触发增量传播与连锁激活，fire limit 防止无限循环
+
+[0D] 复合条件：OR 组 || 与否定 !（DSL 增强）
+    规则1 (OR) : (customer.level==VIP && ticket.type==refund) || order.amount>100000
+    规则2 (NOT): order.status==placed && !customer.blacklist==true
+    VIP+退款工单 → 触发: or_rule
+    15 万订单（无 VIP）→ 触发: or_rule
+    placed 订单（无客户）→ 触发: not_rule
+    placed 订单 + 黑名单客户 → 触发: （NOT 拦截）
+    ↑ || 组与 ! 否定在同一引擎编译执行：规则即数据，复合条件无需改引擎
 
 [1] Evidence 证据分级（可选组件，与引擎解耦）
   置信度: High | 证据 4 条，整体置信度高；存在高权重证据（书面/资源/结果/重复行为），结论可靠
@@ -86,6 +95,7 @@ Total tests: 87, passed: 87, failed: 0.
 | [0A] | rete | 跨事实风控：order × customer × device 三类事实变量绑定 join，命中后动作修改事实（status=hold + 标签累积） |
 | [0B] | rete | 工单路由：两条规则共享 `customer.vip==true` 子条件，Rete 只编译一个 alpha 节点（alpha 数 = 2 而非 3） |
 | [0C] | rete | 库存连锁激活：下单→扣库存→低库存补货→补货后不再触发（增量传播 + fire limit + 幂等保护） |
+| [0D] | rete | OR/NOT 复合条件：`||` 顶层 OR 组（任一组满足即触发，组可括号包裹）；`!` 否定（工作内存中不存在满足条件的事实才满足），黑名单拦截演示 |
 | [1] | evidence | 证据分级（书面/资源/口头/猜测）+ 置信度合成 + 缺失信息清单（可选组件，与引擎解耦，示例数据为演示用） |
 | [2] | guardrail | 决策偏见护栏（转述放大/措辞矛盾/仅凭感觉等），不绑定业务场景 |
 | [3] | case | 案例库落盘 round-trip + 命中计数/反馈闭环机制（与领域无关，内置案例为演示数据） |
@@ -94,4 +104,4 @@ Total tests: 87, passed: 87, failed: 0.
 
 - 所有输出为本仓库 `main` 分支 `moon run main` 的真实 stdout，未做删改
 - 同一规则集 + 同一事实流恒得同一输出（确定性规则引擎，无随机性）
-- Rete 网络测试（lib/rete/rete_test.mbt）覆盖：单条件触发 / 跨事实 join / 共享 alpha 节点 / 冲突消解（salience→specificity→recency）/ 动作修改事实连锁激活 / 幂等自触发保护 / retract 清理 / 数字比较边界 / 标签累积
+- Rete 网络测试（lib/rete/rete_test.mbt）覆盖：单条件触发 / 跨事实 join / 共享 alpha 节点 / 冲突消解（salience→specificity→recency）/ 动作修改事实连锁激活 / 幂等自触发保护 / retract 清理 / 数字比较边界 / 标签累积 / OR 组（含跨事实引用组合）/ NOT 否定（含黑名单拦截）

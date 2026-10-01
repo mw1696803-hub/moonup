@@ -208,3 +208,146 @@ test "append action accumulates tags" {
   assert_eq(snap.length(), 1)
   assert_eq(snap[0].get("tags"), "high")
 }
+
+test "OR groups: fires when either group matches" {
+  let rules = [
+    ReteRule::new(
+      "or_rule",
+      "VIP退款或大额订单",
+      "(customer.level==VIP && ticket.type==refund) || order.amount>100000",
+      "action=manual",
+      10,
+      "OR 组语义",
+    ),
+  ]
+  let engine = ReteEngine::new(rules)
+  // 组 1 命中：VIP + refund（组 2 不成立）
+  let wm1 = WorkingMemory::new()
+  let c = Fact::make("customer")
+  c.set("level", "VIP")
+  engine.insert(wm1, c)
+  let t = Fact::make("ticket")
+  t.set("type", "refund")
+  engine.insert(wm1, t)
+  let r1 = engine.fire_all(wm1)
+  assert_eq(r1.fired.length(), 1)
+  // 组 2 命中：大额订单（无 VIP 客户）
+  let wm2 = WorkingMemory::new()
+  let o = Fact::make("order")
+  o.set("amount", "150000")
+  engine.insert(wm2, o)
+  let r2 = engine.fire_all(wm2)
+  assert_eq(r2.fired.length(), 1)
+  // 两组都不成立：普通 ticket
+  let wm3 = WorkingMemory::new()
+  let t2 = Fact::make("ticket")
+  t2.set("type", "complaint")
+  engine.insert(wm3, t2)
+  let o2 = Fact::make("order")
+  o2.set("amount", "100")
+  engine.insert(wm3, o2)
+  let r3 = engine.fire_all(wm3)
+  assert_eq(r3.fired.length(), 0)
+}
+
+test "OR inside AND chain with cross-fact reference" {
+  let rules = [
+    ReteRule::new(
+      "or_ref",
+      "大额或高价值客户下单",
+      "(order.status==placed && order.amount>100000 && order.customer_id==customer.id) || (order.status==placed && customer.level==VIP && order.customer_id==customer.id)",
+      "action=review",
+      10,
+      "OR 与跨事实引用组合",
+    ),
+  ]
+  let engine = ReteEngine::new(rules)
+  // 大额订单命中 OR 组 2
+  let wm = WorkingMemory::new()
+  let c = Fact::make("customer")
+  c.set("id", "9")
+  c.set("level", "NORMAL")
+  engine.insert(wm, c)
+  let o = Fact::make("order")
+  o.set("status", "placed")
+  o.set("amount", "200000")
+  o.set("customer_id", "9")
+  engine.insert(wm, o)
+  let r = engine.fire_all(wm)
+  assert_eq(r.fired.length(), 1)
+}
+
+test "NOT: fires when matching fact absent" {
+  let rules = [
+    ReteRule::new(
+      "not_ok",
+      "下单且非黑名单",
+      "order.status==placed && !customer.blacklist==true",
+      "action=auto_approve",
+      10,
+      "NOT 语义",
+    ),
+  ]
+  let engine = ReteEngine::new(rules)
+  // 无 customer 事实：!customer.blacklist==true 满足
+  let wm1 = WorkingMemory::new()
+  let o1 = Fact::make("order")
+  o1.set("status", "placed")
+  engine.insert(wm1, o1)
+  let r1 = engine.fire_all(wm1)
+  assert_eq(r1.fired.length(), 1)
+  // 黑名单客户存在：不满足
+  let wm2 = WorkingMemory::new()
+  let c2 = Fact::make("customer")
+  c2.set("blacklist", "true")
+  engine.insert(wm2, c2)
+  let o2 = Fact::make("order")
+  o2.set("status", "placed")
+  engine.insert(wm2, o2)
+  let r2 = engine.fire_all(wm2)
+  assert_eq(r2.fired.length(), 0)
+  // 普通客户（非黑名单）：仍满足
+  let wm3 = WorkingMemory::new()
+  let c3 = Fact::make("customer")
+  c3.set("blacklist", "false")
+  engine.insert(wm3, c3)
+  let o3 = Fact::make("order")
+  o3.set("status", "placed")
+  engine.insert(wm3, o3)
+  let r3 = engine.fire_all(wm3)
+  assert_eq(r3.fired.length(), 1)
+}
+
+test "NOT combined with AND: urgent ticket from non-VIP customer" {
+  let rules = [
+    ReteRule::new(
+      "not_and",
+      "紧急且非VIP",
+      "ticket.urgency==high && !customer.vip==true",
+      "action=normal_queue",
+      10,
+      "NOT + AND",
+    ),
+  ]
+  let engine = ReteEngine::new(rules)
+  // 非 VIP 客户 + 紧急工单 → 触发
+  let wm1 = WorkingMemory::new()
+  let c1 = Fact::make("customer")
+  c1.set("vip", "false")
+  engine.insert(wm1, c1)
+  let t1 = Fact::make("ticket")
+  t1.set("urgency", "high")
+  engine.insert(wm1, t1)
+  let r1 = engine.fire_all(wm1)
+  assert_eq(r1.fired.length(), 1)
+  // VIP 客户 + 紧急工单 → 不触发
+  let wm2 = WorkingMemory::new()
+  let c2 = Fact::make("customer")
+  c2.set("vip", "true")
+  engine.insert(wm2, c2)
+  let t2 = Fact::make("ticket")
+  t2.set("urgency", "high")
+  engine.insert(wm2, t2)
+  let r2 = engine.fire_all(wm2)
+  assert_eq(r2.fired.length(), 0)
+}

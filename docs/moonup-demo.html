@@ -67,18 +67,19 @@
     <h1>MoonUp Rete</h1>
     <p class="sub">MoonBit 原生<b>产生式规则引擎（Rete 网络）</b>。规则编译为 alpha / beta / terminal 节点网络：<b>工作内存</b>维护有状态事实集合，事实 insert / update / retract 只沿网络<b>增量传播</b>，支持<b>跨事实变量绑定 join</b> 与<b>连锁激活</b>；冲突消解按 salience → specificity → recency 确定性排序。同一规则集 + 同一事实流恒得到同一结果——可测试、可审计、无 LLM 幻觉。CLI / 服务端 / WASM 浏览器均可嵌入。</p>
     <div class="badges">
-      <div class="badge"><b>87</b>unit tests</div>
+      <div class="badge"><b>91</b>unit tests</div>
       <div class="badge"><b>0</b>external deps</div>
       <div class="badge"><b>Rete</b>network core</div>
       <div class="badge"><b>WASM</b>runs in browser</div>
     </div>
   </header>
 
-  <div class="sec-title"><span class="n">00</span>同一引擎、三个不同领域——规则在左，真实引擎输出在右<span class="demo-tag">本地 WASM 实时运行，非截图</span></div>
+  <div class="sec-title"><span class="n">00</span>同一引擎、四个不同领域——规则在左，真实引擎输出在右<span class="demo-tag">本地 WASM 实时运行，非截图</span></div>
   <div class="tabs">
     <div class="tab active" data-scene="a">Cross-Fact Risk</div>
     <div class="tab" data-scene="b">Shared-Alpha Routing</div>
     <div class="tab" data-scene="c">Chained Inventory</div>
+    <div class="tab" data-scene="d">Or/Not DSL</div>
   </div>
   <div class="split-wrap">
     <div class="split">
@@ -92,7 +93,7 @@
       </div>
     </div>
   </div>
-  <div class="engine-note">三个 tab 共享同一个 <code>moonup.wasm</code> 核心。切换 tab 只换规则集与事实流，引擎零改动——这正是"规则即数据、引擎与业务语义解耦"的现场证据。</div>
+  <div class="engine-note">四个 tab 共享同一个 <code>moonup.wasm</code> 核心。切换 tab 只换规则集与事实流，引擎零改动——这正是"规则即数据、引擎与业务语义解耦"的现场证据。</div>
 
   <div class="sec-title"><span class="n">01</span>核心概念：Rete 网络 + 工作内存</div>
   <div class="codeblock">
@@ -120,7 +121,7 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
 <span class="cm">// result.fired -&gt; 触发序列（含连锁激活）</span>
 <span class="cm">// result.trace -&gt; 每条触发的规则/事实/动作轨迹（可审计）</span></pre>
   </div>
-  <div class="engine-note">条件 DSL：<code>==</code> <code>!=</code> <code>~=</code> <code>&gt;</code> <code>&lt;</code> <code>&gt;=</code> <code>&lt;=</code> 与 <code>&amp;&amp;</code>；跨事实引用形如 <code>order.customer_id==customer.id</code>。动作：<code>=</code> 赋值 / <code>+=</code> 追加标签 / <code>-=</code> 数值扣减，可引用其他事实字段（<code>product.stock-=order.qty</code>）。幂等保护：字段值未变化的重插被跳过，防止无限自触发。</div>
+  <div class="engine-note">条件 DSL：<code>==</code> <code>!=</code> <code>~=</code> <code>&gt;</code> <code>&lt;</code> <code>&gt;=</code> <code>&lt;=</code>、<code>&amp;&amp;</code>（与）、<code>||</code>（OR 组，顶层）与 <code>!</code>（否定，扫描工作内存全集）；跨事实引用形如 <code>order.customer_id==customer.id</code>。动作：<code>=</code> 赋值 / <code>+=</code> 追加标签 / <code>-=</code> 数值扣减，可引用其他事实字段（<code>product.stock-=order.qty</code>）。幂等保护：字段值未变化的重插被跳过，防止无限自触发。</div>
 
   <div class="sec-title"><span class="n">02</span>为什么 MoonBit 生态需要它</div>
   <div class="caps">
@@ -138,7 +139,7 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
     </div>
     <div class="cap">
       <h4>可审计、可测试</h4>
-      <p>每次触发返回规则 id、事实组合与动作轨迹；每条规则可独立断言。87 个单元测试覆盖 join、共享节点、冲突消解、连锁与边界解析。</p>
+      <p>每次触发返回规则 id、事实组合与动作轨迹；每条规则可独立断言。91 个单元测试覆盖 join、共享节点、冲突消解、连锁、OR/NOT 复合条件与边界解析。</p>
     </div>
   </div>
 
@@ -153,11 +154,12 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
   match-select-act 循环 + fire limit + 幂等保护（防止自触发死循环）
   动作 DSL：= / += / -=，支持跨事实引用值
   触发轨迹 trace（可审计）
+  复合条件 DSL：||（OR 组，顶层）与 !（否定，工作内存全集扫描）
   WASM 导出，浏览器本地运行
-  87 个单元测试，CI 通过
+  91 个单元测试，CI 通过
 
 <span class="cm">// Roadmap（未实现，不作承诺）</span>
-  || / ! / 括号嵌套逻辑
+  括号嵌套逻辑（OR 内嵌于 AND，如 a &amp;&amp; (b || c)）
   JSON / 配置文件直接加载（当前经 MoonBit API 注入规则）
   规则校验与错误定位
   大规模规则集性能基准（当前定位：几十到几百条规则规模）
@@ -165,7 +167,7 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
   </div>
 
   <div class="foot">
-    <div>本页运行 <code>moonup.wasm</code>（由 MoonBit 核心库编译）于浏览器本地执行。复现：<code>git clone https://github.com/mw1696803-hub/moonup</code> → <code>moon test</code>（87 passed）→ <code>moon run main</code> → <code>moon build --release --target wasm-gc</code>。</div>
+    <div>本页运行 <code>moonup.wasm</code>（由 MoonBit 核心库编译）于浏览器本地执行。复现：<code>git clone https://github.com/mw1696803-hub/moonup</code> → <code>moon test</code>（91 passed）→ <code>moon run main</code> → <code>moon build --release --target wasm-gc</code>。</div>
     <div style="margin-top:6px">2026 MoonBit Hackathon - October edition - MIT License - 参考 Rete 算法（Forgy 1974）</div>
   </div>
 </div>
@@ -185,6 +187,11 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
     c: {
       rules:
 '// 场景 C：库存促销——连锁激活\n// 下单→扣库存→低于阈值补货→（补货后不再触发）\nlet engine = ReteEngine::new([\n  ReteRule::new("stock_apply", "下单扣库存",\n    "order.status==placed && product.stock>=order.qty",\n    "product.stock-=order.qty & order.status=fulfilled", 10,\n    "订单成立即扣库存（动作引用其他事实字段）"),\n  ReteRule::new("stock_reorder", "低库存补货",\n    "product.stock<10",\n    "product.stock+=100 & action=reorder_triggered", 8,\n    "低于阈值自动补货"),\n])\n\nlet wm = WorkingMemory::new()\nlet prod = Fact::make("product"); prod.set("stock", "5")\nlet o1 = Fact::make("order"); o1.set("status", "placed"); o1.set("qty", "2")\nengine.insert(wm, prod); engine.insert(wm, o1)\n\n// 触发链: stock_apply → stock_reorder\nengine.fire_all(wm, limit=50)',
+      output: ''
+    },
+    d: {
+      rules:
+'// 场景 D：OR / NOT 复合条件（DSL 增强）\n// OR  : 任一组全部条件满足即触发（组可用括号包裹，顶层 ||）\n// NOT : 工作内存中不存在满足条件的事实才满足（! 前缀）\nlet engine = ReteEngine::new([\n  ReteRule::new("or_rule", "VIP退款或大额订单",\n    "(customer.level==VIP && ticket.type==refund)\n     || order.amount>100000",\n    "action=manual_review", 10,\n    "OR 组语义：任一组满足即触发"),\n  ReteRule::new("not_rule", "下单且非黑名单",\n    "order.status==placed && !customer.blacklist==true",\n    "action=auto_approve", 8,\n    "NOT 语义：不存在黑名单客户才触发"),\n])\n\n// OR 组 1：VIP + 退款工单 → 触发\nlet wm1 = WorkingMemory::new()\nlet c = Fact::make("customer"); c.set("level", "VIP")\nlet t = Fact::make("ticket"); t.set("type", "refund")\nengine.insert(wm1, c); engine.insert(wm1, t)\nengine.fire_all(wm1)\n\n// OR 组 2：大额订单（无 VIP）→ 也触发\nlet wm2 = WorkingMemory::new()\nlet o = Fact::make("order"); o.set("amount", "150000")\nengine.insert(wm2, o)\nengine.fire_all(wm2)\n\n// NOT：placed 订单，无客户 → 触发\nlet wm3 = WorkingMemory::new()\nlet o2 = Fact::make("order"); o2.set("status", "placed")\nengine.insert(wm3, o2)\nengine.fire_all(wm3)\n\n// NOT 拦截：placed 订单 + 黑名单客户 → 不触发\nlet wm4 = WorkingMemory::new()\nlet b = Fact::make("customer"); b.set("blacklist", "true")\nlet o3 = Fact::make("order"); o3.set("status", "placed")\nengine.insert(wm4, b); engine.insert(wm4, o3)\nengine.fire_all(wm4)',
       output: ''
     }
   };
@@ -212,6 +219,7 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
         SCENES.a.output = parts[1] ? '场景' + parts[1].trim() : '(no output)';
         SCENES.b.output = parts[2] ? '场景' + parts[2].trim() : '(no output)';
         SCENES.c.output = parts[3] ? '场景' + parts[3].trim() : '(no output)';
+        SCENES.d.output = parts[4] ? '场景' + parts[4].trim() : '(no output)';
         var active = document.querySelector('.tab.active');
         if (active) showScene(active.dataset.scene);
       })
