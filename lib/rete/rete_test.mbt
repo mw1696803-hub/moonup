@@ -351,3 +351,30 @@ test "NOT combined with AND: urgent ticket from non-VIP customer" {
   let r2 = engine.fire_all(wm2)
   assert_eq(r2.fired.length(), 0)
 }
+
+test "retract breaks cross-fact join token" {
+  let rules = [
+    ReteRule::new("r1", "VIP退款", "customer.level==VIP && ticket.type==refund", "route=vip_queue", 8, ""),
+  ]
+  let engine = ReteEngine::new(rules)
+  let wm = WorkingMemory::new()
+  let c = Fact::make("customer")
+  c.set("level", "VIP")
+  engine.insert(wm, c)
+  let t = Fact::make("ticket")
+  t.set("type", "refund")
+  engine.insert(wm, t)
+  // 两侧事实齐备 → 跨事实 token 触发一次
+  let r1 = engine.fire_all(wm)
+  assert_eq(r1.fired.length(), 1)
+  // 撤回 customer：ticket 仍在，但组合 token 失效，不再触发
+  engine.remove(c.id)
+  let r2 = engine.fire_all(wm)
+  assert_eq(r2.fired.length(), 0)
+  // 重插 customer：组合 token 恢复，再次触发
+  let c2 = Fact::make("customer")
+  c2.set("level", "VIP")
+  engine.insert(wm, c2)
+  let r3 = engine.fire_all(wm)
+  assert_eq(r3.fired.length(), 1)
+}
