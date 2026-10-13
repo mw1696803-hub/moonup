@@ -871,14 +871,26 @@ pub fn ReteEngine::fire_all(self : ReteEngine, wm : WorkingMemory, limit? : Int)
   }
   let fired : Array[String] = []
   let trace : Array[String] = []
+  // no-loop：同一轮内一条规则 id 只触发一次，避免多规则改同一事实导致乒乓激活
+  let fired_rules : Array[String] = []
   let mut count = 0
   while count < max_fire {
     let acts = collect_activations(self, wm)
-    if acts.length() == 0 {
+    let fresh = acts.filter(fn(a) {
+      let mut seen = false
+      for r in fired_rules {
+        if r == a.rule.id {
+          seen = true
+        }
+      }
+      !seen
+    })
+    if fresh.length() == 0 {
       break
     }
-    let act = acts[0]
+    let act = fresh[0]
     fired.push(act.rule.id)
+    fired_rules.push(act.rule.id)
     // 清空该规则 agenda（避免同 token 无限重复触发）
     self.terminals[act.t_idx].agenda.clear()
     // 执行动作：修改事实 → retract + insert → 增量传播 → 新激活

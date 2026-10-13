@@ -208,6 +208,39 @@ fn main {
   println("    ↑ || 组与 ! 否定在同一引擎编译执行：规则即数据，复合条件无需改引擎")
 
   // ---------------------------------------------------------------
+  // [0E] AI Agent 决策后端：LLM 负责理解，引擎负责判断
+  // ---------------------------------------------------------------
+  println("\n[0E] AI Agent 集成：LLM 输出结构化字段 → 引擎确定性裁决 → trace 回喂")
+  // 模拟 LLM 从用户原话中抽出的结构化事实（生产中这是 LLM JSON → Fact 的解析结果）
+  // {"customer":{"vip":"true"},"ticket":{"priority":"high","type":"refund"}}
+  let ag_rules : Array[@rete.ReteRule] = [
+    @rete.ReteRule::new("vip_refund", "VIP 退款进资深队列",
+      "customer.vip==true && ticket.type==refund",
+      "ticket.route=senior_agent & ticket.sla=2h", 10, ""),
+    @rete.ReteRule::new("high_priority", "高优工单加急",
+      "ticket.priority==high",
+      "ticket.flag=urgent", 6, ""),
+  ]
+  let ag_eng = @rete.ReteEngine::new(ag_rules)
+  let ag_wm = @rete.WorkingMemory::new()
+  let ag_c = @rete.Fact::make("customer")
+  ag_c.set("vip", "true")
+  let ag_t = @rete.Fact::make("ticket")
+  ag_t.set("priority", "high")
+  ag_t.set("type", "refund")
+  ag_eng.insert(ag_wm, ag_c)
+  ag_eng.insert(ag_wm, ag_t)
+  let ag_r = ag_eng.fire_all(ag_wm)
+  println("    LLM 归约事实: customer.vip=true, ticket.priority=high, ticket.type=refund")
+  println("    引擎裁决: " + join(ag_r.fired))
+  println("    审计轨迹（可直接回喂 LLM/用户）:")
+  for line in ag_r.trace {
+    println("      " + line)
+  }
+  println("    ↑ LLM 负责把自然语言变成结构化字段；引擎负责在确定性规则下裁决，")
+  println("      同一字段组合恒得同一结果，且可解释为什么——这就是 AI 代理的可靠决策后端")
+
+  // ---------------------------------------------------------------
   // [1] 可选决策组件：Evidence 证据分级（通用口径）
   // ---------------------------------------------------------------
   println("\n[1] Evidence 证据分级（可选组件，与引擎解耦）")

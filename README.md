@@ -198,6 +198,28 @@ import {
 
 即可使用 `ReteEngine` / `WorkingMemory` / `ReteRule` / `FireResult`，把规则引擎嵌入你自己的 MoonBit 项目。
 
+## 作为 AI Agent 的决策后端
+
+典型集成：LLM 负责把自然语言归约成结构化事实，引擎负责确定性裁决，trace 回喂给 LLM/用户做审计。
+
+```moonbit
+// LLM 已从用户原话抽出结构化字段（生产中这是 JSON → Fact 解析）
+let wm = WorkingMemory::new()
+wm.insert(Fact::make("customer").set("vip", "true"))
+wm.insert(Fact::make("ticket").set("priority", "high").set("type", "refund"))
+
+let engine = ReteEngine::new([
+  Rule::new("vip_refund", "VIP退款", "customer.vip==true && ticket.type==refund",
+    "ticket.route=senior_agent", 10, ""),
+])
+let result = engine.fire_all(wm)
+// result.fired → ["vip_refund"]
+// result.trace → ["rule=vip_refund facts=[1,2] action=ticket.route=senior_agent"]
+// 同一字段组合恒得同一结果，且可解释为什么触发——LLM 可能幻觉，规则执行不会。
+```
+
+完整可运行示例见 `moon run main` 的 `[0E]` 段。开发历程与设计取舍见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
+
 ## 网页演示
 
 [MoonUp 交互演示页](docs/moonup-demo.html) — 左右分栏展示"规则代码 → 引擎真实输出"，三个领域 tab 共用同一 WASM 核心。

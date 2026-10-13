@@ -378,3 +378,21 @@ test "retract breaks cross-fact join token" {
   let r3 = engine.fire_all(wm)
   assert_eq(r3.fired.length(), 1)
 }
+
+test "no-loop: same rule id fires once per round even if actions re-trigger it" {
+  let rules = [
+    ReteRule::new("r1", "改 route", "ticket.type==refund", "ticket.route=vip", 10, ""),
+    ReteRule::new("r2", "改 flag", "ticket.priority==high", "ticket.flag=urgent", 6, ""),
+  ]
+  let engine = ReteEngine::new(rules)
+  let wm = WorkingMemory::new()
+  let t = Fact::make("ticket")
+  t.set("type", "refund")
+  t.set("priority", "high")
+  engine.insert(wm, t)
+  let r = engine.fire_all(wm)
+  // 两条规则各触发一次，不乒乓
+  assert_eq(r.fired.length(), 2)
+  assert_eq(r.fired[0], "r1")
+  assert_eq(r.fired[1], "r2")
+}
