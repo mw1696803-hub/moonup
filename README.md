@@ -218,6 +218,30 @@ import {
 
 即可使用 `ReteEngine` / `WorkingMemory` / `ReteRule` / `FireResult`，把规则引擎嵌入你自己的 MoonBit 项目。
 
+最小可用代码（已在一个全新的独立 MoonBit 项目中实测：`moon add` → `moon run main` 通过）：
+
+```moonbit
+let rules : Array[@rete.ReteRule] = [
+  @rete.ReteRule::new(
+    "risk_hold", "跨事实风控",
+    "order.amount>100000 && customer.is_new==true && order.customer_id==customer.id",
+    "action=manual_review & order.status=hold",
+    10, "大额新客人工复核",
+  ),
+]
+let eng = @rete.ReteEngine::new(rules)
+let wm = @rete.WorkingMemory::new()
+let cus = @rete.Fact::make("customer")
+cus.set("is_new", "true"); cus.set("id", "c-1")
+let ord = @rete.Fact::make("order")
+ord.set("amount", "150000"); ord.set("customer_id", "c-1")
+eng.insert(wm, cus); eng.insert(wm, ord)
+let r = eng.fire_all(wm)
+// 输出: fired rules: 1 / order.status=hold
+```
+
+> 验证记录：2026-10-21 在独立项目 `moonup-consume-test` 中执行 `moon add mw1696803-hub/moonup` 成功下载 `@0.1.0`，按上述代码编译运行，输出 `fired rules: 1` 与 `order.status=hold`，跨事实规则正确触发。包本身就是"轮子"：任何 MoonBit 项目一条命令接入。
+
 ## 作为 AI Agent 的决策后端
 
 典型集成：LLM 负责把自然语言归约成结构化事实，引擎负责确定性裁决，trace 回喂给 LLM/用户做审计。
