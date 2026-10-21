@@ -266,7 +266,7 @@ pub fn rete_demo() -> String {
   dl_eng.insert(dl_wm4, dl_o3)
   let dl_r4 = dl_eng.fire_all(dl_wm4)
   out = out + "  输入 placed 订单 + 黑名单客户 → 触发: " + join_names(dl_r4.fired) + "（NOT 拦截）\n"
-  out = out + "\n↑ 同一引擎零修改承载三个领域：规则即数据，引擎与业务语义解耦。"
+  out = out + "\n↑ 同一引擎零修改承载五个领域：规则即数据，引擎与业务语义解耦。"
 
   // --- 场景 E：JSON 规则加载（规则即数据） ---
   out = out + "\n\n--- 场景 E：JSON 规则加载（规则即数据）---\n"

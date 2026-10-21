@@ -1,5 +1,8 @@
 ﻿# MoonUp Rete：MoonBit 产生式规则引擎（Rete 网络）
 
+[![CI](https://github.com/mw1696803-hub/moonup/actions/workflows/ci.yml/badge.svg)](https://github.com/mw1696803-hub/moonup/actions/workflows/ci.yml)
+[![mooncakes.io](https://img.shields.io/badge/mooncakes.io-mw1696803--hub%2Fmoonup%400.1.0-blue)](https://mooncakes.io/docs/mw1696803-hub/moonup@0.1.0)
+
 **产生式规则引擎**：维护有状态的工作内存（多事实），规则按条件跨事实匹配，命中后执行动作、修改事实并连锁触发。核心基于 **Rete 算法**（Forgy 1974）——规则编译成共享网络，事实增删改时**增量传播**，不做全量重匹配。同一输入恒得同一输出，触发轨迹完整可审计。
 
 与 mooncakes.io 已有的 `moonrule`（单条 JSON 表达式校验）互补：**moonrule 判断"输入合不合法"，MoonUp 判断"事实流变化时该做什么"**。
