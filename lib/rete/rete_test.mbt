@@ -192,6 +192,49 @@ test "number comparison rejects malformed values" {
   assert_eq(r3.fired.length(), 0)
 }
 
+test "edge inputs: lone minus, double op, empty condition never fire" {
+  // 单独负号/重复运算符/空条件均不得意外命中（评审点名的解析边界）
+  let rules = [
+    ReteRule::new("r1", "小额或零", "order.amount<=0", "action=zero", 10, ""),
+    ReteRule::new("r2", "重复运算符", "order.amount>>100", "action=double_op", 5, ""),
+    ReteRule::new("r3", "空条件", "", "action=empty", 1, ""),
+  ]
+  let engine = ReteEngine::new(rules)
+  let wm = WorkingMemory::new()
+  let o = Fact::make("order")
+  o.set("amount", "-")
+  engine.insert(wm, o)
+  let r = engine.fire_all(wm)
+  assert_eq(r.fired.length(), 0, msg="lone minus must not satisfy amount<=0")
+  let o2 = Fact::make("order")
+  o2.set("amount", "150")
+  engine.insert(wm, o2)
+  let r2 = engine.fire_all(wm)
+  assert_eq(r2.fired.length(), 0, msg="amount>>100 must not fire on 150")
+  let o3 = Fact::make("order")
+  o3.set("amount", "1.2")
+  engine.insert(wm, o3)
+  let r3 = engine.fire_all(wm)
+  assert_eq(r3.fired.length(), 0, msg="decimal must be rejected")
+  let o4 = Fact::make("order")
+  o4.set("amount", "--1")
+  engine.insert(wm, o4)
+  let r4 = engine.fire_all(wm)
+  assert_eq(r4.fired.length(), 0, msg="double minus must be rejected")
+  // 空条件规则永不触发
+  let o5 = Fact::make("order")
+  o5.set("amount", "100")
+  engine.insert(wm, o5)
+  let r5 = engine.fire_all(wm)
+  assert_eq(r5.fired.length(), 0, msg="empty condition must never fire")
+  // 正常负数仍可解析：amount<=0 命中
+  let o6 = Fact::make("order")
+  o6.set("amount", "-3")
+  engine.insert(wm, o6)
+  let r6 = engine.fire_all(wm)
+  assert_eq(r6.fired.length(), 1, msg="negative integer must satisfy amount<=0")
+}
+
 test "append action accumulates tags" {
   let rules = [
     ReteRule::new("r1", "补标签", "f.a==1", "f.a=2&f.tags+=high", 5, ""),

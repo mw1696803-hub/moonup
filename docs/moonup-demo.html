@@ -140,7 +140,7 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
     </div>
     <div class="cap">
       <h4>可审计、可测试</h4>
-      <p>每次触发返回规则 id、事实组合与动作轨迹；每条规则可独立断言。95 个单元测试覆盖 join、共享节点、冲突消解、连锁、OR/NOT 复合条件与边界解析。</p>
+      <p>每次触发返回规则 id、事实组合与动作轨迹；每条规则可独立断言。96 个单元测试覆盖 join、共享节点、冲突消解、连锁、OR/NOT 复合条件与边界解析。</p>
     </div>
   </div>
 
@@ -158,7 +158,7 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
   复合条件 DSL：||（OR 组，顶层）与 !（否定，工作内存全集扫描）
   JSON 规则集加载（parse_rules_json，配置文件注入）
   WASM 导出，浏览器本地运行
-  95 个单元测试，CI 通过
+  96 个单元测试，CI 通过
 
 <span class="cm">// Roadmap（未实现，不作承诺）</span>
   括号嵌套逻辑（OR 内嵌于 AND，如 a &amp;&amp; (b || c)）
@@ -168,7 +168,7 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
   </div>
 
   <div class="foot">
-    <div>本页运行 <code>moonup.wasm</code>（由 MoonBit 核心库编译）于浏览器本地执行。复现：<code>git clone https://github.com/mw1696803-hub/moonup</code> → <code>moon test</code>（95 passed）→ <code>moon run main</code> → <code>moon build --release --target wasm-gc</code>。</div>
+    <div>本页运行 <code>moonup.wasm</code>（由 MoonBit 核心库编译）于浏览器本地执行。复现：<code>git clone https://github.com/mw1696803-hub/moonup</code> → <code>moon test</code>（96 passed）→ <code>moon run main</code> → <code>moon build --release --target wasm-gc</code>。</div>
     <div style="margin-top:6px">2026 MoonBit Hackathon - October edition - MIT License - 参考 Rete 算法（Forgy 1974）</div>
   </div>
 </div>

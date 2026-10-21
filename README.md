@@ -128,7 +128,7 @@ let result = engine.execute(wm)
 
 **一句话定位**：rust-rule-engine / Drools 是生产级重型引擎；MoonUp 是 MoonBit 生态里第一个把"工作内存 + 跨事实 join + 增量传播 + 冲突消解 + 连锁激活"这条主链做完整的可嵌入式 MVP，边界清晰，不与重型引擎正面竞争。
 
-## 四个领域示例（同一引擎）
+## 五个领域示例（同一引擎）
 
 ```moonbit
 // 实时风控：跨三类事实关联
@@ -285,7 +285,7 @@ let result = engine.fire_all(wm)
 
 ## 网页演示
 
-[MoonUp 交互演示页](docs/moonup-demo.html) — 左右分栏展示"规则代码 → 引擎真实输出"，三个领域 tab 共用同一 WASM 核心。
+[MoonUp 交互演示页](docs/moonup-demo.html) — 左右分栏展示"规则代码 → 引擎真实输出"，五个领域 tab（跨事实风控 / 共享子条件路由 / 库存连锁 / OR-NOT 复合 / JSON 配置加载）共用同一 WASM 核心。
 
 ## 验收标准对照（2026 MoonBit 黑客松）
 
