@@ -273,7 +273,7 @@ let result = engine.fire_all(wm)
 | 04 本期实质新增 | ✅ | Rete 网络、工作内存、增量传播、冲突消解均为本期新增 |
 | 05 开源合规：许可证与参考来源 | ✅ | MIT；Rete 算法与 Drools 设计思想参考见「原创 / 参考」 |
 | 06 AI 可解释 | ✅ | 见「AI 使用说明」 |
-| 07 发布到 mooncakes.io | 🔜 登录后执行 `moon publish` | 包名 `mw1696803-hub/moonup`，元数据已就绪 |
+| 07 发布到 mooncakes.io | ✅ | 已发布 `mw1696803-hub/moonup@0.1.0`（[包页](https://mooncakes.io/docs/mw1696803-hub/moonup@0.1.0)），`moon add mw1696803-hub/moonup` 可直接依赖 |
 
 ## 原创 / 参考说明
 
