@@ -1,0 +1,8 @@
+import {
+  "moonbitlang/core/env",
+  "mw1696803-hub/moonup/lib/rete",
+}
+
+options(
+  "is-main": true,
+)
