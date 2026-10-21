@@ -14,9 +14,6 @@ jobs:
       - name: Install MoonBit toolchain
         run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
 
-      - name: moon install
-        run: $HOME/.moon/bin/moon install
-
       - name: Run unit tests
         run: $HOME/.moon/bin/moon test
 

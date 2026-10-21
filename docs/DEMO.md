@@ -7,7 +7,6 @@
 ```bash
 git clone https://github.com/mw1696803-hub/moonup.git
 cd moonup
-moon install        # 拉取依赖（仅 MoonBit core，无第三方依赖）
 moon test           # 95 个单元测试（含 lib/rete 的 Rete 网络与 JSON 加载测试）
 moon run main       # 端到端 Demo：跨事实风控 / 工单路由（共享 alpha）/ 库存连锁 / OR·NOT 复合条件 / AI Agent / JSON 加载 + 可选组件
 moon build --release --target wasm-gc   # 构建浏览器 WASM（docs/moonup.wasm）
