@@ -74,12 +74,13 @@
     </div>
   </header>
 
-  <div class="sec-title"><span class="n">00</span>同一引擎、四个不同领域——规则在左，真实引擎输出在右<span class="demo-tag">本地 WASM 实时运行，非截图</span></div>
+  <div class="sec-title"><span class="n">00</span>同一引擎、五个不同领域——规则在左，真实引擎输出在右<span class="demo-tag">本地 WASM 实时运行，非截图</span></div>
   <div class="tabs">
     <div class="tab active" data-scene="a">Cross-Fact Risk</div>
     <div class="tab" data-scene="b">Shared-Alpha Routing</div>
     <div class="tab" data-scene="c">Chained Inventory</div>
     <div class="tab" data-scene="d">Or/Not DSL</div>
+    <div class="tab" data-scene="e">JSON Config</div>
   </div>
   <div class="split-wrap">
     <div class="split">
@@ -93,7 +94,7 @@
       </div>
     </div>
   </div>
-  <div class="engine-note">四个 tab 共享同一个 <code>moonup.wasm</code> 核心。切换 tab 只换规则集与事实流，引擎零改动——这正是"规则即数据、引擎与业务语义解耦"的现场证据。</div>
+  <div class="engine-note">五个 tab 共享同一个 <code>moonup.wasm</code> 核心。切换 tab 只换规则集与事实流，引擎零改动——这正是"规则即数据、引擎与业务语义解耦"的现场证据。JSON Config 场景的规则集全部来自 JSON 字符串（<code>parse_rules_json</code>），引擎代码零修改。</div>
 
   <div class="sec-title"><span class="n">01</span>核心概念：Rete 网络 + 工作内存</div>
   <div class="codeblock">
@@ -193,6 +194,11 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
       rules:
 '// 场景 D：OR / NOT 复合条件（DSL 增强）\n// OR  : 任一组全部条件满足即触发（组可用括号包裹，顶层 ||）\n// NOT : 工作内存中不存在满足条件的事实才满足（! 前缀）\nlet engine = ReteEngine::new([\n  ReteRule::new("or_rule", "VIP退款或大额订单",\n    "(customer.level==VIP && ticket.type==refund)\n     || order.amount>100000",\n    "action=manual_review", 10,\n    "OR 组语义：任一组满足即触发"),\n  ReteRule::new("not_rule", "下单且非黑名单",\n    "order.status==placed && !customer.blacklist==true",\n    "action=auto_approve", 8,\n    "NOT 语义：不存在黑名单客户才触发"),\n])\n\n// OR 组 1：VIP + 退款工单 → 触发\nlet wm1 = WorkingMemory::new()\nlet c = Fact::make("customer"); c.set("level", "VIP")\nlet t = Fact::make("ticket"); t.set("type", "refund")\nengine.insert(wm1, c); engine.insert(wm1, t)\nengine.fire_all(wm1)\n\n// OR 组 2：大额订单（无 VIP）→ 也触发\nlet wm2 = WorkingMemory::new()\nlet o = Fact::make("order"); o.set("amount", "150000")\nengine.insert(wm2, o)\nengine.fire_all(wm2)\n\n// NOT：placed 订单，无客户 → 触发\nlet wm3 = WorkingMemory::new()\nlet o2 = Fact::make("order"); o2.set("status", "placed")\nengine.insert(wm3, o2)\nengine.fire_all(wm3)\n\n// NOT 拦截：placed 订单 + 黑名单客户 → 不触发\nlet wm4 = WorkingMemory::new()\nlet b = Fact::make("customer"); b.set("blacklist", "true")\nlet o3 = Fact::make("order"); o3.set("status", "placed")\nengine.insert(wm4, b); engine.insert(wm4, o3)\nengine.fire_all(wm4)',
       output: ''
+    },
+    e: {
+      rules:
+'// 场景 E：JSON 规则加载（规则即数据）\n// 规则集全部来自 JSON 字符串（parse_rules_json），引擎代码零修改\n// {\n//   "rules": [\n//     { "id": "risk_hold", "condition": "order.amount>100000 && customer.is_new==true",\n//       "action": "action=manual_review & order.status=hold", "priority": 10 },\n//     { "id": "vip_pass", "condition": "customer.level==VIP && order.amount<50000",\n//       "action": "action=auto_pass", "priority": 5 }\n//   ]\n// }\nlet rules = parse_rules_json(json_str)  // Result[Array[ReteRule], String]，带定位错误\nlet engine = ReteEngine::new(rules!)\n\n// 工作内存\nlet wm = WorkingMemory::new()\nlet cus = Fact::make("customer"); cus.set("is_new", "true")\nlet ord = Fact::make("order"); ord.set("amount", "150000")\nengine.insert(wm, cus); engine.insert(wm, ord)\n\n// 大额新客 → risk_hold 触发，订单 status=hold\nengine.fire_all(wm)\n\n// 换业务只需换 JSON 文件——引擎与业务语义完全解耦',
+      output: ''
     }
   };
 
@@ -220,6 +226,7 @@ let result = engine.fire_all(wm)  <span class="cm">// match-select-act 循环</s
         SCENES.b.output = parts[2] ? '场景' + parts[2].trim() : '(no output)';
         SCENES.c.output = parts[3] ? '场景' + parts[3].trim() : '(no output)';
         SCENES.d.output = parts[4] ? '场景' + parts[4].trim() : '(no output)';
+        SCENES.e.output = parts[5] ? '场景' + parts[5].trim() : '(no output)';
         var active = document.querySelector('.tab.active');
         if (active) showScene(active.dataset.scene);
       })
