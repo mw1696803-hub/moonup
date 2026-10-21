@@ -163,23 +163,43 @@ Rule("not_demo", "order.status==placed && !customer.blacklist==true", "action=au
 | `\|\|` OR 组（顶层，组可括号包裹） | ✅ | 任一组成立即匹配；每组独立编译网络、共享 terminal |
 | `!` 否定条件 | ✅ | 工作内存中不存在满足条件的事实才满足（扫描全集） |
 | 括号嵌套（OR 内嵌于 AND，如 `a && (b \|\| c)`） | 🔜 路线图 | 需表达式树解析 |
-| JSON/配置文件加载规则 | 🔜 路线图 | 当前 MoonBit API 注入 |
+| JSON/配置文件加载规则 | ✅ | `parse_rules_json`：规则集从 JSON 注入（id/condition/action 校验、带定位错误），引擎与业务解耦 |
 | 大规模规则集性能基准 | 🔜 路线图 | 定位几十到几百条规则 |
 
 ## 模块
 
 | 模块 | 能力 |
 |---|---|
-| `rete` | Rete 网络编译、工作内存、增量传播、冲突消解、动作执行、OR/NOT 复合条件 DSL（本仓库核心） |
+| `rete` | Rete 网络编译、工作内存、增量传播、冲突消解、动作执行、OR/NOT 复合条件 DSL、JSON 规则加载（本仓库核心） |
 | `engine` | 线性匹配模式（规则量小时简单路径，保留） |
 | `evidence` / `guardrail` / `case` | 可选决策组件（建立在引擎之上、与引擎解耦，按需引入） |
 
 ## 快速开始
 
 ```bash
-moon run main    # 端到端 Demo（跨事实风控 + 工单路由 + 库存联动）
+moon run main    # 端到端 Demo（跨事实风控 + 工单路由 + 库存联动 + OR/NOT + AI Agent + JSON 加载）
 moon test        # 单元测试
 moon build --release --target wasm-gc   # WASM 构建
+```
+
+规则集从 JSON 注入：
+
+```json
+{
+  "rules": [
+    {
+      "id": "risk_hold",
+      "condition": "order.amount>100000 && customer.is_new==true",
+      "action": "action=manual_review & order.status=hold",
+      "priority": 10
+    }
+  ]
+}
+```
+
+```moonbit
+let rules = parse_rules_json(json_str)  // Result[Array[ReteRule], String]，带定位错误
+let engine = ReteEngine::new(rules!)
 ```
 
 ## 作为依赖安装（mooncakes.io）

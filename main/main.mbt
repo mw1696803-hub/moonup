@@ -241,6 +241,52 @@ fn main {
   println("      同一字段组合恒得同一结果，且可解释为什么——这就是 AI 代理的可靠决策后端")
 
   // ---------------------------------------------------------------
+  // [0F] JSON 配置加载：规则即数据，规则集来自配置文件
+  // ---------------------------------------------------------------
+  println("\n[0F] JSON 配置加载：规则集从 JSON 注入，引擎零改动")
+  let json_str =
+    #|{
+    #|  "rules": [
+    #|    {
+    #|      "id": "risk_hold",
+    #|      "label": "跨事实风控",
+    #|      "condition": "order.amount>100000 && customer.is_new==true",
+    #|      "action": "action=manual_review & order.status=hold",
+    #|      "priority": 10,
+    #|      "note": "大额新客人工复核"
+    #|    },
+    #|    {
+    #|      "id": "vip_pass",
+    #|      "label": "VIP放行",
+    #|      "condition": "customer.level==VIP && order.amount<50000",
+    #|      "action": "action=auto_pass",
+    #|      "priority": 5
+    #|    }
+    #|  ]
+    #|}
+  match @rete.parse_rules_json(json_str) {
+    Ok(jr_rules) => {
+      println("    解析 " + jr_rules.length().to_string() + " 条规则: " + jr_rules[0].id + ", " + jr_rules[1].id)
+      let jr_eng = @rete.ReteEngine::new(jr_rules)
+      let jr_wm = @rete.WorkingMemory::new()
+      let jr_c = @rete.Fact::make("customer")
+      jr_c.set("is_new", "true")
+      let jr_o = @rete.Fact::make("order")
+      jr_o.set("amount", "150000")
+      jr_eng.insert(jr_wm, jr_c)
+      jr_eng.insert(jr_wm, jr_o)
+      let jr_r = jr_eng.fire_all(jr_wm)
+      println("    大额新客 → 触发: " + join(jr_r.fired) + "（规则全部来自 JSON，引擎代码零修改）")
+      let jr_orders = jr_r.facts.filter(fn(f) { f.kind == "order" })
+      if jr_orders.length() > 0 {
+        println("    订单最终状态: status=" + jr_orders[0].get("status"))
+      }
+    }
+    Err(e) => println("    JSON 解析失败: " + e)
+  }
+  println("    ↑ 换业务只需换 JSON 规则文件，引擎与业务语义完全解耦")
+
+  // ---------------------------------------------------------------
   // [1] 可选决策组件：Evidence 证据分级（通用口径）
   // ---------------------------------------------------------------
   println("\n[1] Evidence 证据分级（可选组件，与引擎解耦）")

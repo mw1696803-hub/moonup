@@ -16,7 +16,7 @@ moon test           # 91 涓崟鍏冩祴璇曪紙鍚?lib/rete 鐨?15 涓?Rete
 ### 1. moon test
 
 ```
-Total tests: 93, passed: 91, failed: 0.
+Total tests: 95, passed: 91, failed: 0.
 ```
 
 ### 2. moon run main锛堢湡瀹?stdout锛屾湭鍒犳敼锛?

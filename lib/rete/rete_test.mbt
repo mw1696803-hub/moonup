@@ -396,3 +396,80 @@ test "no-loop: same rule id fires once per round even if actions re-trigger it" 
   assert_eq(r.fired[0], "r1")
   assert_eq(r.fired[1], "r2")
 }
+
+test "JSON: load rules and fire correctly" {
+  let json_str =
+    #|{
+    #|  "rules": [
+    #|    {
+    #|      "id": "risk_hold",
+    #|      "label": "跨事实风控",
+    #|      "condition": "order.amount>100000 && customer.is_new==true",
+    #|      "action": "action=manual_review & order.status=hold",
+    #|      "priority": 10,
+    #|      "note": "大额新客人工复核"
+    #|    },
+    #|    {
+    #|      "id": "vip_pass",
+    #|      "label": "VIP放行",
+    #|      "condition": "customer.level==VIP && order.amount<50000",
+    #|      "action": "action=auto_pass",
+    #|      "priority": 5
+    #|    }
+    #|  ]
+    #|}
+  let rules = parse_rules_json(json_str)
+  match rules {
+    Ok(rs) => {
+      assert_eq(rs.length(), 2)
+      assert_eq(rs[0].id, "risk_hold")
+      assert_eq(rs[1].id, "vip_pass")
+      let engine = ReteEngine::new(rs)
+      let wm = WorkingMemory::new()
+      let c = Fact::make("customer")
+      c.set("is_new", "true")
+      let o = Fact::make("order")
+      o.set("amount", "150000")
+      engine.insert(wm, c)
+      engine.insert(wm, o)
+      let r = engine.fire_all(wm)
+      assert_eq(r.fired.length(), 1)
+      assert_eq(r.fired[0], "risk_hold")
+    }
+    Err(e) => fail("should parse: " + e)
+  }
+}
+
+test "JSON: malformed / missing fields are rejected" {
+  // 非法 JSON
+  let r1 = parse_rules_json("not json at all")
+  assert_true(r1 is Err(_))
+  // 根节点非对象
+  let r2 = parse_rules_json("[1,2,3]")
+  assert_true(r2 is Err(_))
+  // 缺 rules
+  let r3 = parse_rules_json(
+    #|{"foo": 1}|
+  )
+  assert_true(r3 is Err(_))
+  // 规则缺 id
+  let r4 = parse_rules_json(
+    #|{"rules": [{"label":"x","condition":"a==1","action":"f=1"}]}|
+  )
+  assert_true(r4 is Err(_))
+  // id 为空
+  let r5 = parse_rules_json(
+    #|{"rules": [{"id":"","condition":"a==1","action":"f=1"}]}|
+  )
+  assert_true(r5 is Err(_))
+  // 缺 condition
+  let r6 = parse_rules_json(
+    #|{"rules": [{"id":"r","action":"f=1"}]}|
+  )
+  assert_true(r6 is Err(_))
+  // 单条规则非对象
+  let r7 = parse_rules_json(
+    #|{"rules": [42]}|
+  )
+  assert_true(r7 is Err(_))
+}
