@@ -135,7 +135,7 @@ let result = engine.execute(wm)
 
 ```moonbit
 // 实时风控：跨三类事实关联
-Rule("risk", "order.amount>100000 && customer.is_new==true && device.risk>0.7", "action=manual_review", 10, "跨事实强制人工")
+Rule("risk", "order.amount>100000 && customer.is_new==true && device.risk==high", "action=manual_review", 10, "跨事实强制人工")
 
 // 工单路由：多规则共享"客户等级==VIP"子条件（网络共享节点，一次测试）
 Rule("r1", "customer.level==VIP && ticket.urgency==high", "route=vip_queue", 8, "VIP紧急优先")
