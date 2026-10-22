@@ -64,41 +64,44 @@ Rete 网络
 
 ```moonbit
 // OR：VIP 退款 或 大额订单，任一成立即触发
-Rule("or_demo", "(customer.level==VIP && ticket.type==refund) || order.amount>100000",
-     "action=manual_review", 10, "OR 组语义")
+ReteRule::new("or_demo", "VIP退款或大额订单",
+  "(customer.level==VIP && ticket.type==refund) || order.amount>100000",
+  "action=manual_review", 10, "OR 组语义")
 
 // NOT：下单且客户不在黑名单才自动放行（黑名单事实存在即拦截）
-Rule("not_demo", "order.status==placed && !customer.blacklist==true",
-     "action=auto_approve", 8, "否定语义")
+ReteRule::new("not_demo", "下单且非黑名单",
+  "order.status==placed && !customer.blacklist==true",
+  "action=auto_approve", 8, "否定语义")
 ```
 
 ## 最小示例
 
 ```moonbit
 // 1. 定义规则：跨事实条件 + 变量绑定 + 动作
-let rules = [
-  Rule::new("risk_manual", "大额新客风控",
-    "order.amount>100000 && customer.is_new==true",
-    "action=manual_review",
+let rules : Array[ReteRule] = [
+  ReteRule::new("risk_manual", "大额新客风控",
+    "order.amount>100000 && customer.is_new==true && order.customer_id==customer.id",
+    "action=manual_review & order.status=hold",
     10, "大额+新客强制人工"),
-  Rule::new("risk_vip", "VIP放行",
-    "customer.level==VIP && order.amount<50000",
-    "action=auto_pass",
-    5, "VIP小额自动通过"),
 ]
 
-// 2. 构造工作内存，插入事实
-let wm = WorkingMemory::new()
-wm.insert(Fact::new().set("type","customer").set("is_new","true").set("level","normal"))
-wm.insert(Fact::new().set("type","order").set("amount","150000"))
-
-// 3. 增量匹配 + 冲突消解 + 动作执行
+// 2. 编译网络 + 构造工作内存 + 插入事实（增量传播）
 let engine = ReteEngine::new(rules)
-let result = engine.execute(wm)
-// result.fired     → 触发的规则（按 salience/specificity/recency 排序）
-// result.trace     → 每条规则的触发轨迹（可审计）
-// result.facts     → 动作执行后的工作内存快照
+let wm = WorkingMemory::new()
+let cus = Fact::make("customer")
+cus.set("is_new", "true"); cus.set("id", "c-1")
+let ord = Fact::make("order")
+ord.set("amount", "150000"); ord.set("customer_id", "c-1")
+engine.insert(wm, cus); engine.insert(wm, ord)
+
+// 3. 冲突消解 + 动作执行 + 连锁激活
+let result = engine.fire_all(wm)
+// result.fired → 触发规则序列（salience/specificity/recency/rule id 确定性排序）
+// result.trace → 每条规则的触发轨迹（可审计）
+// result.facts → 动作执行后的工作内存快照
 ```
+
+> 这段代码在独立第三方项目中实测通过（`moon add mw1696803-hub/moonup` → 编译 → 运行），输出 `fired rules: 1 / order.status=hold`。
 
 ## 与 moonrule 的差异
 
@@ -133,20 +136,49 @@ let result = engine.execute(wm)
 
 ## 五个领域示例（同一引擎）
 
+以下代码均为真实 API（`lib/rete`，与网页演示页逐字一致），同一 `ReteEngine` 承载五类规则形态：
+
 ```moonbit
-// 实时风控：跨三类事实关联
-Rule("risk", "order.amount>100000 && customer.is_new==true && device.risk==high", "action=manual_review", 10, "跨事实强制人工")
+// 1. 实时风控：跨三类事实关联（beta join）
+ReteRule::new("risk_hold", "跨事实风控",
+  "order.amount>100000 && customer.is_new==true && device.risk==high",
+  "action=manual_review & order.status=hold", 10, "跨事实强制人工")
 
-// 工单路由：多规则共享"客户等级==VIP"子条件（网络共享节点，一次测试）
-Rule("r1", "customer.level==VIP && ticket.urgency==high", "route=vip_queue", 8, "VIP紧急优先")
-Rule("r2", "customer.level==VIP && ticket.type==refund", "route=refund_queue", 5, "VIP退款专属")
+// 2. 工单路由：多规则共享"客户等级==VIP"子条件（alpha 节点复用，一次测试）
+ReteRule::new("vip_senior", "VIP工单进资深坐席",
+  "customer.vip==true && ticket.priority==high", "ticket.route=senior_agent", 10, "")
+ReteRule::new("vip_sla", "VIP工单加急",
+  "customer.vip==true && ticket.priority==high", "ticket.sla=15min", 8, "共享 VIP 条件")
 
-// 库存联动：下单 → 扣库存 → 触发补货 → 连锁激活
-Rule("stock", "stock.level<10 && stock.restock==false", "stock.restock=true & action=order_restock", 6, "低于阈值自动补货")
+// 3. 库存联动：下单 → 扣库存 → 低于阈值补货 → 连锁激活
+ReteRule::new("stock_apply", "下单扣库存",
+  "order.status==placed && product.stock>=order.qty",
+  "product.stock-=order.qty & order.status=fulfilled", 10, "")
+ReteRule::new("stock_reorder", "低库存补货",
+  "product.stock<10", "product.stock+=100 & action=reorder_triggered", 8, "")
 
-// 复合条件：OR 组（VIP 退款或大额订单）与 NOT 否定（非黑名单才放行）
-Rule("or_demo", "(customer.level==VIP && ticket.type==refund) || order.amount>100000", "action=manual_review", 10, "任一组满足即触发")
-Rule("not_demo", "order.status==placed && !customer.blacklist==true", "action=auto_approve", 8, "黑名单存在即拦截")
+// 4. 复合条件：OR 组（VIP 退款或大额订单）与 NOT 否定（非黑名单才放行）
+ReteRule::new("or_rule", "VIP退款或大额订单",
+  "(customer.level==VIP && ticket.type==refund) || order.amount>100000",
+  "action=manual_review", 10, "")
+ReteRule::new("not_rule", "下单且非黑名单",
+  "order.status==placed && !customer.blacklist==true", "action=auto_approve", 8, "")
+
+// 5. 规则配置化：规则集来自 JSON（parse_rules_json），引擎代码零修改
+let rules = parse_rules_json(json_str)  // Result[Array[ReteRule], String]
+let engine = ReteEngine::new(rules!)
+```
+
+工作内存与触发（以场景 1 为例）：
+
+```moonbit
+let engine = ReteEngine::new([/* 上述规则 */])
+let wm = WorkingMemory::new()
+let dev = Fact::make("device"); dev.set("risk", "high")
+let cus = Fact::make("customer"); cus.set("is_new", "true"); cus.set("id", "c-1001")
+let ord = Fact::make("order"); ord.set("amount", "150000"); ord.set("customer_id", "c-1001")
+engine.insert(wm, dev); engine.insert(wm, cus); engine.insert(wm, ord)
+let result = engine.fire_all(wm)   // result.fired / result.trace / result.facts
 ```
 
 ## 当前能力 vs 路线图
