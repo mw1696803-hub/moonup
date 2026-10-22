@@ -1,7 +1,7 @@
 ﻿# MoonUp Rete：MoonBit 产生式规则引擎（Rete 网络）
 
 [![CI](https://github.com/mw1696803-hub/moonup/actions/workflows/ci.yml/badge.svg)](https://github.com/mw1696803-hub/moonup/actions/workflows/ci.yml)
-[![mooncakes.io](https://img.shields.io/badge/mooncakes.io-mw1696803--hub%2Fmoonup%400.1.0-blue)](https://mooncakes.io/docs/mw1696803-hub/moonup@0.1.0)
+[![mooncakes.io](https://img.shields.io/badge/mooncakes.io-mw1696803--hub%2Fmoonup%400.1.0-blue)](https://mooncakes.io/docs/mw1696803-hub/moonup@0.1.1)
 
 **产生式规则引擎**：维护有状态的工作内存（多事实），规则按条件跨事实匹配，命中后执行动作、修改事实并连锁触发。核心基于 **Rete 算法**（Forgy 1974）——规则编译成共享网络，事实增删改时**增量传播**，不做全量重匹配。同一输入恒得同一输出，触发轨迹完整可审计。
 
@@ -332,7 +332,7 @@ let result = engine.fire_all(wm)
 | 04 本期实质新增 | ✅ | Rete 网络、工作内存、增量传播、冲突消解均为本期新增 |
 | 05 开源合规：许可证与参考来源 | ✅ | MIT；Rete 算法与 Drools 设计思想参考见「原创 / 参考」 |
 | 06 AI 可解释 | ✅ | 见「AI 使用说明」 |
-| 07 发布到 mooncakes.io | ✅ | 已发布 `mw1696803-hub/moonup@0.1.0`（[包页](https://mooncakes.io/docs/mw1696803-hub/moonup@0.1.0)），`moon add mw1696803-hub/moonup` 可直接依赖 |
+| 07 发布到 mooncakes.io | ✅ | 已发布 `mw1696803-hub/moonup@0.1.1`（[包页](https://mooncakes.io/docs/mw1696803-hub/moonup@0.1.1)），`moon add mw1696803-hub/moonup` 可直接依赖 |
 
 ## 原创 / 参考说明
 
